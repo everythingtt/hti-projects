@@ -347,45 +347,68 @@
          }
 
          /* Tutorial UI */
-         #tutorial-overlay {
-             position: fixed;
-             top: 0; left: 0; width: 100%; height: 100%;
-             background: rgba(0, 0, 0, 0.7);
-             z-index: 11000;
-             display: none;
-             align-items: center;
-             justify-content: center;
-             backdrop-filter: blur(4px);
-         }
-         .tutorial-card {
-             background: #1e293b;
-             border: 2px solid var(--hti-gold);
-             border-radius: 15px;
-             width: 90%;
-             max-width: 500px;
-             padding: 30px;
-             color: white;
-             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-             position: relative;
-         }
-         .tutorial-step-indicator {
-             font-size: 12px;
-             color: var(--hti-gold);
-             margin-bottom: 10px;
-             font-weight: bold;
-         }
-         .tutorial-actions {
-             display: flex;
-             justify-content: space-between;
-             margin-top: 25px;
-             gap: 10px;
-         }
-         .spotlight {
-             position: relative;
-             z-index: 11001 !important;
-             box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7), 0 0 20px var(--hti-gold) !important;
-             pointer-events: none;
-         }
+          #tutorial-overlay {
+              position: fixed;
+              top: 0; left: 0; width: 100%; height: 100%;
+              background: rgba(0, 0, 0, 0.4);
+              z-index: 11000;
+              display: none;
+              pointer-events: none; /* Allow interaction with spotlights if needed */
+              backdrop-filter: blur(2px);
+          }
+          .tutorial-card {
+              background: #1e293b;
+              border: 1px solid rgba(197, 160, 89, 0.5);
+              border-radius: 12px;
+              width: 320px;
+              padding: 20px;
+              color: white;
+              box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+              position: fixed; /* Dynamic positioning */
+              z-index: 11002;
+              pointer-events: auto;
+              transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          }
+          .tutorial-card::before {
+              content: '';
+              position: absolute;
+              width: 12px; height: 12px;
+              background: #1e293b;
+              transform: rotate(45deg);
+              border: 1px solid rgba(197, 160, 89, 0.3);
+          }
+          /* Tooltip arrows */
+          .tut-left::before { right: -7px; top: 20px; border-left: none; border-bottom: none; }
+          .tut-right::before { left: -7px; top: 20px; border-right: none; border-top: none; }
+          .tut-top::before { bottom: -7px; left: 50%; transform: translateX(-50%) rotate(45deg); border-top: none; border-left: none; }
+          .tut-bottom::before { top: -7px; left: 50%; transform: translateX(-50%) rotate(45deg); border-bottom: none; border-right: none; }
+
+          .tutorial-step-indicator {
+              font-size: 11px;
+              color: var(--hti-gold);
+              margin-bottom: 8px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              font-weight: 800;
+          }
+          .tutorial-actions {
+              display: flex;
+              justify-content: flex-end;
+              margin-top: 20px;
+              gap: 8px;
+          }
+          .tutorial-actions .btn {
+              margin-top: 0;
+              padding: 6px 15px;
+              font-size: 13px;
+          }
+          .spotlight {
+              position: relative;
+              z-index: 11001 !important;
+              box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px var(--hti-gold) !important;
+              pointer-events: none;
+              border-radius: 4px;
+          }
       </style>
 </head>
 <body oncontextmenu="return _handleContextMenu(event)">
@@ -780,18 +803,58 @@
             const step = currentSteps[_currentTutorialStep];
             const t = translations[_lang];
             
+            const card = document.querySelector('.tutorial-card');
             document.getElementById('tutorial-step-text').innerText = _lang === 'ar' ? `الخطوة ${_currentTutorialStep + 1} من ${currentSteps.length}` : `Step ${_currentTutorialStep + 1} of ${currentSteps.length}`;
             document.getElementById('tutorial-title').innerText = step.title;
             document.getElementById('tutorial-desc').innerText = step.desc;
             
-            // Clear previous spotlights
+            // Clear previous spotlights and arrow classes
             document.querySelectorAll('.spotlight').forEach(el => el.classList.remove('spotlight'));
+            card.className = 'tutorial-card';
             
             // Add new spotlight
             const targetEl = document.getElementById(step.target) || document.querySelector(`#${step.target}`);
             if (targetEl) {
                 targetEl.classList.add('spotlight');
                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Position card relative to target
+                setTimeout(() => {
+                    const rect = targetEl.getBoundingClientRect();
+                    const cardWidth = 320;
+                    let top = rect.top + (rect.height / 2) - 100;
+                    let left = 0;
+
+                    if (_lang === 'ar') {
+                        left = rect.left - cardWidth - 30;
+                        card.classList.add('tut-left');
+                        if (left < 20) { // Not enough space on left
+                            left = rect.right + 30;
+                            card.classList.remove('tut-left');
+                            card.classList.add('tut-right');
+                        }
+                    } else {
+                        left = rect.right + 30;
+                        card.classList.add('tut-right');
+                        if (left + cardWidth > window.innerWidth - 20) { // Not enough space on right
+                            left = rect.left - cardWidth - 30;
+                            card.classList.remove('tut-right');
+                            card.classList.add('tut-left');
+                        }
+                    }
+
+                    // Viewport bounds check
+                    if (top < 80) top = 80;
+                    if (top + 250 > window.innerHeight) top = window.innerHeight - 250;
+
+                    card.style.top = top + 'px';
+                    card.style.left = left + 'px';
+                }, 100);
+            } else {
+                // Center if no target
+                card.style.top = '50%';
+                card.style.left = '50%';
+                card.style.transform = 'translate(-50%, -50%)';
             }
 
             const nextBtn = document.getElementById('tutorial-next-btn');
