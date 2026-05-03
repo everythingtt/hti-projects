@@ -752,6 +752,12 @@
         }
 
         function startTutorial() {
+            // Fix: Prevent tutorial from starting if portal is still active
+            if (document.getElementById('portal-overlay').style.display !== 'none') {
+                console.log("Tutorial blocked: Portal is still active.");
+                return;
+            }
+
             _currentTutorialStep = 0;
             document.getElementById('tutorial-overlay').style.display = 'flex';
             updateTutorialStep();
@@ -849,6 +855,12 @@
             document.getElementById('portal-overlay').classList.add('dismissed');
             setTimeout(() => {
                 document.getElementById('portal-overlay').style.display = 'none';
+                
+                // Optional: Ask user if they want the tutorial upon first entry
+                const welcomeMsg = _lang === 'ar' ? "هل تود البدء في جولة تعليمية سريعة؟" : "Would you like to start a quick tutorial guide?";
+                if (confirm(welcomeMsg)) {
+                    startTutorial();
+                }
             }, 800);
         }
 
