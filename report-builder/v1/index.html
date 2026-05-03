@@ -1073,10 +1073,8 @@
             const thinkingId = 'thinking-' + Date.now();
             appendAIMessage('<div class="ai-thought">' + (translations[_lang].ai_thinking || "Thinking...") + '</div><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>', 'assistant', thinkingId);
 
-            const reportContext = {
+                        const reportContext = {
                 subject: document.getElementById('in-subject').value,
-                name: document.getElementById('in-name').value,
-                id: document.getElementById('in-id').value,
                 pageCount: document.querySelectorAll('.pdf-page').length,
                 lang: _lang
             };
@@ -1173,27 +1171,24 @@
                 let currentMessages = [
                     { 
                         role: "system", 
-                        content: `You are "Assistant", an autonomous agentic building tool for HTI students. 
-                        Your goal is to build COMPLETE reports strictly following Dr. Walaa Hesham's Academic Rules:
+                        content: `You are "Assistant", an autonomous agent for HTI students.
+                        Rules:
+                        - Length: 20-25 pages.
+                        - Cover (page-1): HTI Logo, Subject, Name, ID. Bottom: "Under supervision of: Dr. Walaa Hesham".
+                        - TOC (page-2): Use Roman Numerals (I, II, III...).
+                        - Abstract (page-3): One paragraph, no bullets.
+                        - Intro (page-4): 1-2 pages, max 2 paragraphs.
+                        - Body: Copy-paste allowed. Aim for 20+ pages.
+                        - Conclusion: One paragraph, 4-5 lines.
+                        - Recommendation: Bullet points only.
+                        - References: Alphabetical.
                         
-                        REPORT STRUCTURE & RULES:
-                        1. Length: 20-25 pages total.
-                        2. Cover (page-1): Must have HTI logo, Subject Name, Student Name, and ID. Bottom must say: "Under supervision of: Dr. Walaa Hesham". Language: English.
-                        3. TOC (page-2): Page numbering inside the TOC list must use Roman Numerals (I, II, III, IV...) instead of regular numbers (1, 2, 3...).
-                        4. Abstract (page-3): One single paragraph only. No bullet points. Must mention subject and results.
-                        5. Introduction (page-4): 1-2 pages long. Maximum of 2 paragraphs.
-                        6. Body Content: Copy-pasting from sources is allowed this term. Aim for high page count (20+ pages total).
-                        7. Conclusion: One single paragraph, 4-5 lines long.
-                        8. Recommendation: Must be in bullet points (not paragraphs).
-                        9. References: Must be listed Alphabetically.
-                        
-                        CRITICAL OPERATIONAL RULES:
-                        1. If the user provides a URL, you MUST call 'scrape_url' first to research it.
-                        2. Use 'bulk_generate_pages' to build the 20-25 page structure in one go.
-                        3. Always verify your work using 'get_report_diagnostics' and 'read_page_content'.
-                        4. Current context: ${JSON.stringify(reportContext)}.
-                        5. Page IDs: page-1 (Cover), page-2 (TOC), page-3 (Abstract), page-4 (Intro), page-5+ (New).
-                        6. Always respond in the user's language (${_lang}).` 
+                        Ops:
+                        - Research URLs with 'scrape_url' first.
+                        - Use 'bulk_generate_pages' for efficiency.
+                        - Verify with 'get_report_diagnostics'.
+                        - Context: ${JSON.stringify(reportContext)}.
+                        - Lang: ${_lang}.` 
                     },
                     ..._aiHistory,
                     { role: "user", content: text }
