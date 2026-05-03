@@ -26,6 +26,17 @@
         [lang="ar"] .tutorial-card { text-align: right; }
         [lang="ar"] .tutorial-actions { flex-direction: row-reverse; }
 
+        /* Fix: PDF Preview should ALWAYS be LTR to preserve A4 simulation layout */
+        #preview-zone { direction: ltr !important; }
+        .pdf-page { direction: ltr !important; text-align: left; }
+        
+        /* Fix: Header layout in RTL */
+        [lang="ar"] header { flex-direction: row-reverse; }
+        [lang="ar"] header div[style*="flex"] { flex-direction: row-reverse; }
+        
+        /* Fix: Crawler animation should not be flipped by RTL direction */
+        #security-crawler { direction: ltr !important; }
+
         /* Essential Reset & Body */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { 
