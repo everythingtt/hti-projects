@@ -781,9 +781,13 @@
                         <img src="hti.png" class="cover-logo" style="width: 150px; margin-top: 0;" onmousedown="makeDraggable(this.parentElement)">
                     </div>
                     <div style="margin-top: 100mm;">
-                        <h1 id="out-subject" style="font-size: 36px; text-transform: uppercase;">SUBJECT NAME</h1>
-                        <p style="margin-top: 20px; font-size: 20px;">Prepared by: <span id="out-name">Your Name</span></p>
-                        <p style="font-size: 18px;">ID: <span id="out-id">Your ID</span></p>
+                        <div style="position: absolute; left: 50%; top: 120mm; transform: translateX(-50%); cursor: move; text-align: center; width: 100%;" onmousedown="makeDraggable(this)">
+                            <h1 id="out-subject" style="font-size: 36px; text-transform: uppercase;">SUBJECT NAME</h1>
+                        </div>
+                        <div style="position: absolute; left: 50%; top: 150mm; transform: translateX(-50%); cursor: move; text-align: center; width: 100%;" onmousedown="makeDraggable(this)">
+                            <p style="margin-top: 20px; font-size: 20px;">Prepared by: <span id="out-name">Your Name</span></p>
+                            <p style="font-size: 18px;">ID: <span id="out-id">Your ID</span></p>
+                        </div>
                     </div>
                     <div class="cover-footer">
                         Under supervision of:<br>
@@ -1893,7 +1897,9 @@
             el.onmousedown = dragMouseDown;
 
             function dragMouseDown(e) {
-                if(e.target.contentEditable === "true") return; // Allow text editing
+                // If the user is trying to edit text inside a contenteditable or span, don't drag
+                if(e.target.contentEditable === "true" || e.target.tagName === 'SPAN' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                
                 e.preventDefault();
                 pos3 = e.clientX;
                 pos4 = e.clientY;
@@ -1907,6 +1913,10 @@
                 pos2 = pos4 - e.clientY;
                 pos3 = e.clientX;
                 pos4 = e.clientY;
+                
+                // Remove transform on first drag to prevent positioning conflicts with 'absolute'
+                if (el.style.transform) el.style.transform = 'none';
+                
                 el.style.top = (el.offsetTop - pos2) + "px";
                 el.style.left = (el.offsetLeft - pos1) + "px";
             }
