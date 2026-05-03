@@ -1183,7 +1183,7 @@
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({
-                            model: "deepseek/deepseek-v3:free",
+                            model: "deepseek-ai/deepseek-r1:free",
                             messages: currentMessages,
                             tools: tools.map(t => ({ type: "function", function: t })),
                             tool_choice: "auto"
@@ -1192,16 +1192,17 @@
                     
                     if (!response.ok) {
                         const errBody = await response.text();
-                        if (response.status === 524) {
-                            throw new Error(_lang === 'ar' ? "انتهت مهلة خادم الذكاء الاصطناعي (524). يرجى المحاولة مرة أخرى." : "AI Server Timeout (524). The provider is taking too long. Please try again.");
-                        }
                         throw new Error(`API Error ${response.status}: ${errBody}`);
                     }
 
                     const data = await response.json();
+                    
+                    // Handle provider-level errors (Code 524 etc)
                     if (data.error) {
-                        throw new Error(`AI Error: ${data.error.message || "Unknown error"}`);
+                        console.error("Provider Error:", data.error);
+                        throw new Error(`AI Provider Error: ${data.error.message || 'Unknown error'}`);
                     }
+
                     if (!data.choices || data.choices.length === 0) {
                         console.error("Malformed API response:", data);
                         throw new Error("Invalid API response format");
@@ -1369,7 +1370,7 @@
             }
             
             document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
-            await new Promise(r => setTimeout(r, 1200));
+            await new Promise(r => setTimeout(r, 600)); // Optimized from 1200ms to 600ms for faster task flow
             
             // Safety check: Only update fxBubble if it was actually used/appended
             if (fxBubble && fxBubble.parentElement) {
