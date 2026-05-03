@@ -435,7 +435,9 @@
               bottom: 140px;
               right: 30px;
               width: 380px;
+              max-width: calc(100vw - 60px);
               height: 500px;
+              max-height: calc(100vh - 200px);
               background: #1e293b;
               border: 1px solid rgba(197, 160, 89, 0.3);
               border-radius: 15px;
@@ -447,6 +449,13 @@
               transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           }
           [lang="ar"] #ai-assistant-container { right: auto; left: 30px; }
+
+          @media (max-width: 768px) {
+              #ai-assistant-container { bottom: 80px; right: 10px; width: calc(100vw - 20px); max-height: 60vh; }
+              [lang="ar"] #ai-assistant-container { left: 10px; right: auto; }
+              #ai-chat-toggle { bottom: 80px; right: 20px; }
+              [lang="ar"] #ai-chat-toggle { left: 20px; right: auto; }
+          }
 
           .ai-header {
               padding: 15px 20px;
