@@ -534,6 +534,30 @@
           .dot:nth-child(3) { animation-delay: 0.4s; }
           @keyframes dot-bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
           /* Agentic Action FX */
+          .ai-suggestions {
+              padding: 10px 15px;
+              display: flex;
+              gap: 8px;
+              overflow-x: auto;
+              background: #0f172a;
+              border-top: 1px solid #334155;
+          }
+          .ai-suggestion-chip {
+              background: #334155;
+              color: #cbd5e1;
+              padding: 5px 12px;
+              border-radius: 15px;
+              font-size: 11px;
+              white-space: nowrap;
+              cursor: pointer;
+              transition: all 0.2s;
+              border: 1px solid transparent;
+          }
+          .ai-suggestion-chip:hover {
+              background: var(--hti-gold);
+              color: #000;
+              border-color: #000;
+          }
           .ai-action-bubble {
               background: rgba(197, 160, 89, 0.1);
               border: 1px dashed var(--hti-gold);
@@ -642,6 +666,9 @@
             <div class="ai-bubble assistant">
                 Hello! I'm your HTI Assistant. How can I help you build your report today?
             </div>
+        </div>
+        <div class="ai-suggestions" id="ai-suggestions">
+            <!-- Suggestions injected here -->
         </div>
         <div class="ai-input-area">
             <input type="text" id="ai-user-input" class="ai-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendAIMessage()">
@@ -867,7 +894,11 @@
                 ai_thinking: "Thinking...",
                 ai_action_update: "Updating settings...",
                 ai_action_insert: "Inserting new page...",
-                ai_action_content: "Writing content..."
+                ai_action_content: "Writing content...",
+                ai_action_scrape: "Researching URL content...",
+                ai_sug_1: "Create report about AI",
+                ai_sug_2: "Summarize this URL...",
+                ai_sug_3: "Add reference from link"
             },
             ar: {
                 ready: "جاهز",
@@ -923,7 +954,11 @@
                 ai_thinking: "جاري التفكير...",
                 ai_action_update: "جاري تحديث الإعدادات...",
                 ai_action_insert: "جاري إدراج صفحة جديدة...",
-                ai_action_content: "جاري كتابة المحتوى..."
+                ai_action_content: "جاري كتابة المحتوى...",
+                ai_action_scrape: "جاري البحث في محتوى الرابط...",
+                ai_sug_1: "أنشئ تقريراً عن الذكاء الاصطناعي",
+                ai_sug_2: "لخص هذا الرابط...",
+                ai_sug_3: "أضف مرجعاً من رابط"
             }
         };
 
@@ -960,6 +995,17 @@
                 const data = await res.json();
                 if (data.country_code === 'EG' && _lang !== 'ar') {
                     toggleLanguage();
+                } else {
+                    // Refresh suggestions for initial language
+                    const t = translations[_lang];
+                    const suggestionsContainer = document.getElementById('ai-suggestions');
+                    if (suggestionsContainer) {
+                        suggestionsContainer.innerHTML = `
+                            <div class="ai-suggestion-chip" onclick="fillAISuggestion('${t.ai_sug_1}')">${t.ai_sug_1}</div>
+                            <div class="ai-suggestion-chip" onclick="fillAISuggestion('${t.ai_sug_2}')">${t.ai_sug_2}</div>
+                            <div class="ai-suggestion-chip" onclick="fillAISuggestion('${t.ai_sug_3}')">${t.ai_sug_3}</div>
+                        `;
+                    }
                 }
             } catch (e) { console.log("Geo-detection skipped."); }
         };
@@ -1043,6 +1089,17 @@
                         },
                         required: ["pageId", "content"]
                     }
+                },
+                {
+                    name: "scrape_url",
+                    description: "Fetch and research the content of a specific URL to use as context/references.",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            url: { type: "string", description: "The full URL to research" }
+                        },
+                        required: ["url"]
+                    }
                 }
             ];
 
@@ -1058,14 +1115,14 @@
                         messages: [
                             { 
                                 role: "system", 
-                                content: `You are "Assistant", an agentic building tool for HTI students. You can DIRECTLY modify the report using tools. 
+                                content: `You are "Assistant", an agentic building tool for HTI students. You can DIRECTLY modify the report and research URLs.
                                 IMPORTANT:
-                                1. To update settings (subject, name, id), use update_report_settings.
-                                2. To add a new section, use insert_new_page first, then set_page_content.
-                                3. The current report context is: ${JSON.stringify(reportContext)}.
-                                4. If the user asks to "start the report" or "write about X", perform multiple tool calls to set it up.
-                                5. Page 1 is Cover, Page 2 is TOC, Page 3 is Abstract, Page 4 is Intro. New pages start from page-5.
-                                6. Always respond in the user's language (${_lang}).` 
+                                1. To update settings, use update_report_settings.
+                                2. To add/update sections, use insert_new_page and set_page_content.
+                                3. To research a URL the user provides, use scrape_url. Use the info from the scraper to write the report and add formal citations/references.
+                                4. Current report context: ${JSON.stringify(reportContext)}.
+                                5. Page 1: Cover, 2: TOC, 3: Abstract, 4: Intro. New: page-5+.
+                                6. Always respond in ${_lang}.` 
                             },
                             ..._aiHistory,
                             { role: "user", content: text }
@@ -1154,6 +1211,20 @@
                         }
                     }
                     break;
+
+                case 'scrape_url':
+                    appendAIMessage(`<div class="ai-thought">${t.ai_action_scrape || "Researching URL content..."}</div>`, 'assistant', statusId);
+                    try {
+                        const scrapeRes = await fetch(`https://r.jina.ai/${args.url}`);
+                        const markdown = await scrapeRes.text();
+                        // Add to memory context
+                        _aiHistory.push({ role: "system", content: `Research results for ${args.url}: ${markdown.substring(0, 5000)}` });
+                        appendAIMessage(_lang === 'ar' ? `تم البحث في الرابط بنجاح. سأستخدم هذه المعلومات في التقرير.` : `Successfully researched URL. I will use this info in the report.`, 'assistant');
+                    } catch (e) {
+                        console.error("Scrape failed", e);
+                        appendAIMessage(_lang === 'ar' ? "فشل البحث في الرابط. قد يكون الموقع محميأً." : "Failed to research URL. The site might be protected.", 'assistant');
+                    }
+                    break;
             }
             
             document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
@@ -1171,6 +1242,12 @@
             div.innerHTML = content;
             messages.appendChild(div);
             messages.scrollTop = messages.scrollHeight;
+        }
+
+        function fillAISuggestion(text) {
+            const input = document.getElementById('ai-user-input');
+            input.value = text;
+            input.focus();
         }
 
         function toggleLanguage() {
@@ -1226,6 +1303,15 @@
             // Update AI Assistant
             document.getElementById('ai-name-label').innerText = t.ai_name;
             document.getElementById('ai-user-input').placeholder = t.ai_placeholder;
+            
+            // Update Suggestions UI
+            const suggestionsContainer = document.getElementById('ai-suggestions');
+            suggestionsContainer.innerHTML = `
+                <div class="ai-suggestion-chip" onclick="fillAISuggestion('${t.ai_sug_1}')">${t.ai_sug_1}</div>
+                <div class="ai-suggestion-chip" onclick="fillAISuggestion('${t.ai_sug_2}')">${t.ai_sug_2}</div>
+                <div class="ai-suggestion-chip" onclick="fillAISuggestion('${t.ai_sug_3}')">${t.ai_sug_3}</div>
+            `;
+
             // Refresh welcome message if it's the only one
             const aiMsgs = document.getElementById('ai-messages');
             if (aiMsgs.children.length === 1) {
