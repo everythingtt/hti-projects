@@ -104,6 +104,8 @@
             position: relative;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             transform-origin: top center;
+            overflow: hidden; /* Prevent text from going off-page */
+            word-wrap: break-word; /* Force long words to break */
         }
 
         /* Specific Page Formatting */
@@ -1912,8 +1914,21 @@
                 // Remove transform on first drag to prevent positioning conflicts with 'absolute'
                 if (el.style.transform) el.style.transform = 'none';
                 
-                el.style.top = (el.offsetTop - pos2) + "px";
-                el.style.left = (el.offsetLeft - pos1) + "px";
+                let newTop = el.offsetTop - pos2;
+                let newLeft = el.offsetLeft - pos1;
+
+                // Boundary Checks (Keep within the PDF page)
+                const parent = el.parentElement;
+                if (parent && parent.classList.contains('pdf-page')) {
+                    const pad = 20; // Safety padding
+                    if (newTop < pad) newTop = pad;
+                    if (newLeft < pad) newLeft = pad;
+                    if (newTop + el.offsetHeight > parent.offsetHeight - pad) newTop = parent.offsetHeight - el.offsetHeight - pad;
+                    if (newLeft + el.offsetWidth > parent.offsetWidth - pad) newLeft = parent.offsetWidth - el.offsetWidth - pad;
+                }
+
+                el.style.top = newTop + "px";
+                el.style.left = newLeft + "px";
             }
 
             function closeDragElement() {
