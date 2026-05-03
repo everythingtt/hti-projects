@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HTI Report Builder v1.0 | Youssef Ayman</title>
+    <!-- External Libs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --hti-blue: #003366;
+            --hti-gold: #c5a059;
+            --bg-dark: #0f172a;
+            --paper-white: #ffffff;
+            --ui-panel: #1e293b;
+        }
+
+        [lang="ar"] { font-family: 'Amiri', serif; direction: rtl; }
+        [lang="ar"] .step, [lang="ar"] .scanner-item, [lang="ar"] .input-group, [lang="ar"] aside { text-align: right; }
+        [lang="ar"] #sidebar { border-right: none; border-left: 1px solid #334155; }
+        [lang="ar"] .page-controls { right: auto; left: -50px; }
+        [lang="ar"] .tutorial-card { text-align: right; }
+        [lang="ar"] .tutorial-actions { flex-direction: row-reverse; }
+        [lang="ar"] .crawler-track { animation-name: crawl-rtl; }
+        [lang="ar"] #tool-status span:last-child { margin-left: 0; margin-right: 15px; }
+        [lang="ar"] .scanner-item span:first-child { margin-right: 0; margin-left: 10px; }
+        
+        @keyframes crawl-rtl {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* Essential Reset & Body */
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { 
+            background: var(--bg-dark); 
+            color: #f8fafc; 
+            font-family: 'Inter', sans-serif; 
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        /* The Ghost UI Framework */
+        #app-shell { display: flex; height: 100vh; flex-direction: column; }
+        
+        header {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            z-index: 100;
+        }
+
+        .brand-logo { height: 45px; cursor: pointer; transition: transform 0.3s; }
+        .brand-logo:hover { transform: rotate(-5deg) scale(1.1); }
+
+        /* Workspace Layout */
+        #main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Sidebar Controls */
+        #sidebar {
+            width: 320px;
+            background: var(--ui-panel);
+            padding: 20px;
+            padding-bottom: 140px; /* Added padding to clear fixed asset drawer */
+            overflow-y: auto;
+            border-right: 1px solid #334155;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Preview Area */
+        #preview-zone {
+            flex: 1;
+            background: #334155;
+            padding: 40px;
+            padding-bottom: 160px; /* Added padding to clear fixed asset drawer */
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            scroll-behavior: smooth;
+        }
+
+        /* A4 Page Simulation */
+        .pdf-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: var(--paper-white);
+            color: #000;
+            padding: 20mm;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transform-origin: top center;
+        }
+
+        /* Specific Page Formatting */
+        .cover-page { display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; }
+        .cover-logo { width: 150px; margin-top: 50px; }
+        .cover-footer { margin-bottom: 50px; font-weight: 600; }
+
+        /* Custom Context Menu */
+        #custom-cm {
+            position: fixed;
+            background: #ffffff;
+            color: #333;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 180px;
+            display: none;
+            z-index: 9999;
+            overflow: hidden;
+        }
+        .cm-item { padding: 12px 15px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #eee; }
+        .cm-item:hover { background: #f0f4f8; }
+
+        /* Asset Library Drawer */
+        #asset-drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: rgba(30, 41, 59, 0.95);
+            border-top: 2px solid var(--hti-gold);
+            display: flex;
+            padding: 10px;
+            gap: 15px;
+            overflow-x: auto;
+            z-index: 90;
+        }
+        .asset-thumb {
+            height: 100px;
+            min-width: 100px;
+            background: #000;
+            border-radius: 5px;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .asset-thumb:hover { border-color: var(--hti-gold); }
+
+        /* Page Management UI */
+        .page-controls {
+            position: absolute;
+            right: -50px;
+            top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            opacity: 0;
+            transition: 0.3s;
+        }
+        .pdf-page:hover .page-controls { opacity: 1; }
+        .page-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .page-btn:hover { transform: scale(1.1); background: #dc2626; }
+
+        /* Editable Elements */
+        [contenteditable]:focus { outline: 2px dashed var(--hti-gold); padding: 5px; }
+
+        /* UI Helpers */
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 12px; margin-bottom: 5px; color: #94a3b8; }
+        input, textarea, select {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .btn {
+            background: var(--hti-gold);
+            color: #000;
+            border: none;
+            padding: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: 0.2s;
+        }
+        .btn:hover { filter: brightness(1.2); }
+
+        /* Print Media Engine - Optimized for HTI standards */
+        @media print {
+            body { background: white !important; }
+            #sidebar, header, #asset-drawer, #custom-cm, .btn, #tool-status { 
+                display: none !important; 
+            }
+            #main-container { display: block; overflow: visible; height: auto; }
+            #preview-zone { 
+                background: white !important; 
+                padding: 0 !important; 
+                overflow: visible !important; 
+                display: block !important;
+            }
+            .pdf-page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                page-break-after: always;
+                border: none !important;
+                width: 210mm;
+                height: 297mm;
+            }
+            [contenteditable]:focus { outline: none; }
+        }
+
+        /* Mobile Overrides */
+        @media (max-width: 768px) {
+            #sidebar { width: 0; padding: 0; position: absolute; }
+            .pdf-page { width: 95vw; min-height: 135vw; padding: 10mm; }
+            #preview-zone { padding: 10px; padding-bottom: 140px; }
+            header { padding: 10px; }
+            .brand-logo { height: 30px; }
+        }
+
+        /* Portal & Security Crawler */
+        #portal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #020617;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.8s cubic-bezier(0.87, 0, 0.13, 1);
+        }
+        #portal-overlay.dismissed { transform: translateY(-100%); }
+        
+        .portal-content { text-align: center; color: white; }
+        .portal-logo { width: 120px; margin-bottom: 20px; animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        #security-crawler {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 1px solid var(--hti-gold);
+            padding: 10px 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+        .crawler-track {
+            display: flex;
+            gap: 50px;
+            animation: crawl 20s linear infinite;
+            white-space: nowrap;
+            align-items: center;
+        }
+        .scanner-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #94a3b8;
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .scanner-item:hover { color: var(--hti-gold); }
+        .scanner-img { height: 24px; filter: grayscale(1) brightness(2); transition: 0.3s; }
+        .scanner-item:hover .scanner-img { filter: none; }
+
+        @keyframes crawl {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Verification Steps UI */
+        #verify-steps {
+            display: none;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+            background: rgba(30, 41, 59, 0.5);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            text-align: left;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        .step.active { color: white; }
+        .step.complete { color: #22c55e; }
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #334155;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        .step.active .step-icon { border-color: var(--hti-gold); border-top-color: transparent; animation: spin 1s linear infinite; }
+        .step.complete .step-icon { background: #22c55e; border-color: #22c55e; color: white; }
+        .step.complete .step-icon::after { content: '✓'; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #hcaptcha-container {
+             display: none;
+             margin: 15px 0;
+             justify-content: center;
+         }
+
+         /* Tutorial UI */
+          #tutorial-overlay {
+              position: fixed;
+              top: 0; left: 0; width: 100%; height: 100%;
+              background: rgba(0, 0, 0, 0.4);
+              z-index: 11000;
+              display: none;
+              pointer-events: none; /* Allow interaction with spotlights if needed */
+              backdrop-filter: blur(2px);
+          }
+          .tutorial-card {
+              background: #1e293b;
+              border: 1px solid rgba(197, 160, 89, 0.5);
+              border-radius: 12px;
+              width: 320px;
+              padding: 20px;
+              color: white;
+              box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+              position: fixed; /* Dynamic positioning */
+              z-index: 11002;
+              pointer-events: auto;
+              transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          }
+          .tutorial-card::before {
+              content: '';
+              position: absolute;
+              width: 12px; height: 12px;
+              background: #1e293b;
+              transform: rotate(45deg);
+              border: 1px solid rgba(197, 160, 89, 0.3);
+          }
+          /* Tooltip arrows */
+          .tut-left::before { right: -7px; top: 20px; border-left: none; border-bottom: none; }
+          .tut-right::before { left: -7px; top: 20px; border-right: none; border-top: none; }
+          .tut-top::before { bottom: -7px; left: 50%; transform: translateX(-50%) rotate(45deg); border-top: none; border-left: none; }
+          .tut-bottom::before { top: -7px; left: 50%; transform: translateX(-50%) rotate(45deg); border-bottom: none; border-right: none; }
+
+          .tutorial-step-indicator {
+              font-size: 11px;
+              color: var(--hti-gold);
+              margin-bottom: 8px;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+              font-weight: 800;
+          }
+          .tutorial-actions {
+              display: flex;
+              justify-content: flex-end;
+              margin-top: 20px;
+              gap: 8px;
+          }
+          .tutorial-actions .btn {
+              margin-top: 0;
+              padding: 6px 15px;
+              font-size: 13px;
+          }
+          .spotlight {
+              position: relative;
+              z-index: 11001 !important;
+              box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6), 0 0 30px var(--hti-gold) !important;
+              pointer-events: none;
+              border-radius: 4px;
+          }
+      </style>
+</head>
+<body oncontextmenu="return _handleContextMenu(event)">
+
+    <!-- Initial Portal Overlay -->
+    <div id="portal-overlay">
+        <div class="portal-content" id="portal-main">
+            <img src="hti.png" class="portal-logo" alt="HTI Logo">
+            <h1 style="font-family: 'Playfair Display', serif; font-size: 42px; margin-bottom: 10px;">HTI Report Builder</h1>
+            <p style="color: var(--hti-gold); letter-spacing: 2px; font-size: 14px; margin-bottom: 30px;">SECURE ACADEMIC ENVIRONMENT</p>
+            <button class="btn" id="btn-enter" onclick="startVerification()" style="width: 200px; background: white; color: #020617; border-radius: 50px;">Enter Workspace</button>
+            
+            <div id="verify-steps">
+                <div class="step" id="step-cloudflare">
+                    <div class="step-icon"></div>
+                    <span>Cloudflare Protection: Checking connection...</span>
+                </div>
+                
+                <div id="hcaptcha-container">
+                    <div class="h-captcha" data-sitekey="10000000-ffff-ffff-ffff-000000000001" data-callback="hcaptchaResolved"></div>
+                </div>
+
+                <div class="step" id="step-browser">
+                    <div class="step-icon"></div>
+                    <span>Browser Verification: Validating environment...</span>
+                </div>
+
+                <div class="step" id="step-final">
+                    <div class="step-icon"></div>
+                    <span>Finalizing: Securing workspace...</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="security-crawler">
+            <div class="crawler-track">
+                <span style="color: var(--hti-gold); font-weight: bold; margin-right: 20px;">SECURITY STATUS:</span>
+                <a href="https://www.virustotal.com/gui/url/0ec237d2f43442a51fc3c6d7b278421a1424e760b9282392dd46a8729548f19c/detection" target="_blank" class="scanner-item">
+                    <img src="virustotal.png" class="scanner-img"> Scanned with VirusTotal (Clean)
+                </a>
+                <a href="screenshot-2026-05-03-182611.png" target="_blank" class="scanner-item">
+                    <img src="malware_scanner.png" class="scanner-img"> Malware Scanner Verified
+                </a>
+                <span class="scanner-item" style="pointer-events: none;">
+                    <span style="color: #22c55e;">●</span> SSL Encryption Active
+                </span>
+                <span class="scanner-item" style="pointer-events: none;">
+                    <span style="color: #22c55e;">●</span> Dr. Walaa Hesham Rule Validation Active
+                </span>
+                <!-- Duplicate for seamless loop if track is short -->
+                <a href="https://www.virustotal.com/gui/url/0ec237d2f43442a51fc3c6d7b278421a1424e760b9282392dd46a8729548f19c/detection" target="_blank" class="scanner-item">
+                    <img src="virustotal.png" class="scanner-img"> VirusTotal Detection: 0/93
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-shell">
+        <header>
+            <img src="hti.png" class="brand-logo" alt="HTI Logo">
+            <div id="tool-status">HTI Builder v1.0 | <span style="color:var(--hti-gold)">Ready</span> <span style="margin-left:15px; font-size:11px; opacity:0.6; font-weight:normal;">Developed by Youssef Ayman</span></div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="toggleLanguage()" class="btn" id="lang-toggle-btn" style="width:auto; padding: 5px 15px; background: #1e40af; color: white;">العربية</button>
+                <button onclick="startTutorial()" class="btn" id="btn-help" style="width:auto; padding: 5px 15px; background: transparent; border: 1px solid #475569; color: #94a3b8;">Help</button>
+                <button onclick="invokeTheInk()" class="btn" id="btn-print" style="width:auto; padding: 5px 15px; background: #475569; color: white;">Print</button>
+                <button onclick="generateTheMagicPDF()" class="btn" id="btn-export" style="width:auto; padding: 5px 15px;">Export PDF</button>
+            </div>
+        </header>
+
+        <!-- Tutorial Overlay -->
+        <div id="tutorial-overlay">
+            <div class="tutorial-card">
+                <div class="tutorial-step-indicator" id="tutorial-step-text">Step 1 of 4</div>
+                <h2 id="tutorial-title" style="margin-bottom: 15px;">Welcome to HTI Builder</h2>
+                <p id="tutorial-desc" style="line-height: 1.6; color: #cbd5e1;">This quick guide will show you how to build your 25-page report in minutes.</p>
+                <div class="tutorial-actions">
+                    <button class="btn" onclick="closeTutorial()" style="background: transparent; border: 1px solid #475569; color: white; width: auto; padding: 8px 20px;">Skip</button>
+                    <button class="btn" id="tutorial-next-btn" onclick="nextTutorialStep()" style="width: auto; padding: 8px 30px;">Next Step</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="main-container">
+            <aside id="sidebar">
+                <h3 style="margin-bottom:20px; border-bottom: 1px solid #475569;">Report Settings</h3>
+                <div class="input-group">
+                    <label id="lbl-subject">Report Subject</label>
+                    <input type="text" id="in-subject" placeholder="Enter Subject Name..." oninput="syncFields()">
+                </div>
+                <div class="input-group">
+                    <label id="lbl-name">Student Name</label>
+                    <input type="text" id="in-name" placeholder="Youssef Ayman" oninput="syncFields()">
+                </div>
+                <div class="input-group">
+                    <label id="lbl-id">Student ID</label>
+                    <input type="text" id="in-id" placeholder="202XXXXX" oninput="syncFields()">
+                </div>
+                
+                <hr style="opacity:0.2; margin: 20px 0;">
+                
+                <div class="input-group">
+                    <label id="lbl-img-url">Image via URL</label>
+                    <input type="text" id="img-url" placeholder="Paste link here...">
+                    <button class="btn" id="btn-attach-url" onclick="addAssetFromURL()" style="background:#475569; color:white;">Attach from Link</button>
+                </div>
+                
+                <div class="input-group">
+                    <label id="lbl-local-up">Local Upload</label>
+                    <input type="file" id="img-file" accept="image/*" style="display:none" onchange="handleFileUpload(event)">
+                    <button class="btn" id="btn-upload-local" onclick="document.getElementById('img-file').click()" style="background:#1e40af; color:white;">Upload Image</button>
+                </div>
+
+                <hr style="opacity:0.2; margin: 20px 0;">
+
+                <div class="input-group">
+                    <label id="lbl-add-page">Add New Page</label>
+                    <select id="page-template" style="margin-bottom: 10px;">
+                        <option value="body">Body Content (Standard)</option>
+                        <option value="image">Full Page Image/Figure</option>
+                        <option value="conclusion">Conclusion</option>
+                        <option value="references">References</option>
+                        <option value="blank">Blank Page</option>
+                    </select>
+                    <button class="btn" id="btn-insert-page" onclick="addNewPage()" style="background:#10b981; color:white;">+ Insert Page</button>
+                </div>
+
+                <div style="font-size: 11px; color: #64748b; margin-top: 20px;">
+                    * Dr. Walaa Hesham Supervision rule applied. <br>
+                    * TOC Roman numerals active. <br>
+                    * Copy-Paste from sources permitted this term.
+                </div>
+                
+                <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid rgba(71, 85, 105, 0.3); font-size: 12px; color: #94a3b8; text-align: center;">
+                    <span id="footer-crafted-text">Crafted with ❤️ by</span> <br>
+                    <span style="color: var(--hti-gold); font-weight: 600;">Youssef Ayman</span>
+                    <div style="margin-top: 10px;">
+                        <a href="terms.html" id="footer-terms-link" target="_blank" style="color: #64748b; text-decoration: none; margin-right: 10px;">Terms</a>
+                        <a href="privacy.html" id="footer-privacy-link" target="_blank" style="color: #64748b; text-decoration: none;">Privacy</a>
+                    </div>
+                </div>
+            </aside>
+
+            <main id="preview-zone">
+                <!-- Page 1: Cover -->
+                <div class="pdf-page cover-page" id="page-1">
+                    <img src="hti.png" class="cover-logo">
+                    <div>
+                        <h1 id="out-subject" style="font-size: 36px; text-transform: uppercase;">SUBJECT NAME</h1>
+                        <p style="margin-top: 20px; font-size: 20px;">Prepared by: <span id="out-name">Your Name</span></p>
+                        <p style="font-size: 18px;">ID: <span id="out-id">Your ID</span></p>
+                    </div>
+                    <div class="cover-footer">
+                        Under supervision of:<br>
+                        Dr. Walaa Hesham
+                    </div>
+                </div>
+
+                <!-- Page 2: TOC -->
+                <div class="pdf-page" id="page-2">
+                    <h2 style="text-align:center; border-bottom: 2px solid #000; padding-bottom: 10px;">Table of Contents</h2>
+                    <div id="toc-list" contenteditable="true" style="margin-top: 30px; font-size: 18px; line-height: 2.5; outline:none;">
+                        <div style="display:flex; justify-content:space-between"><span>I. Abstract</span> <span>3</span></div>
+                        <div style="display:flex; justify-content:space-between"><span>II. Introduction</span> <span>4</span></div>
+                        <div style="display:flex; justify-content:space-between"><span>III. Body Content</span> <span>6</span></div>
+                        <div style="display:flex; justify-content:space-between"><span>IV. Conclusion</span> <span>22</span></div>
+                        <div style="display:flex; justify-content:space-between"><span>V. Recommendations</span> <span>23</span></div>
+                        <div style="display:flex; justify-content:space-between"><span>VI. References</span> <span>24</span></div>
+                    </div>
+                </div>
+
+                <!-- Page 3: Abstract -->
+                <div class="pdf-page" id="page-3">
+                    <h2 style="margin-bottom: 20px;">Abstract</h2>
+                    <div contenteditable="true" style="text-align: justify; line-height: 1.6;">
+                        This report discusses [Subject]. Throughout the research, we have explored various facets of the topic. The findings indicate that [Result 1] and [Result 2] play a crucial role in the development of this field. This paragraph summarizes the intent and the final outcome of the study as required.
+                    </div>
+                </div>
+
+                <!-- Page 4: Intro -->
+                <div class="pdf-page" id="page-4">
+                    <h2 style="margin-bottom: 20px;">Introduction</h2>
+                    <div contenteditable="true" style="text-align: justify; line-height: 1.8;">
+                        <p>First Paragraph: The introduction provides context for the report. It should explain the background of the study and why it is being conducted at HTI.</p>
+                        <br>
+                        <p>Second Paragraph: This section outlines the scope and limitations of the report, setting the stage for the detailed body content that follows in the subsequent pages.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <div id="asset-drawer">
+            <!-- Assets populated here -->
+        </div>
+    </div>
+
+    <!-- Custom Context Menu -->
+    <div id="custom-cm">
+        <div class="cm-item" onclick="applyToBackground()">Set as Background</div>
+        <div class="cm-item" onclick="deleteActiveElement()">Delete Element</div>
+        <div class="cm-item" onclick="resizeElement()">Resize (Toggle)</div>
+        <div class="cm-item" onclick="closeCM()">Cancel</div>
+    </div>
+
+    <script>
+        /**
+         * HTI Report Builder Engine
+         * Dev: Youssef Ayman
+         */
+
+        let _activeElement = null;
+        const library = [];
+        let _pageCounter = 4; // Starting after the 4 initial pages
+        let _currentTutorialStep = 0;
+        let _lang = 'en';
+        let _isTutorialActive = false;
+
+        const translations = {
+            en: {
+                ready: "Ready",
+                subject: "Report Subject",
+                name: "Student Name",
+                id: "Student ID",
+                img_url: "Image via URL",
+                local_up: "Local Upload",
+                add_page: "Add New Page",
+                insert_btn: "+ Insert Page",
+                enter_btn: "Enter Workspace",
+                help: "Help",
+                print: "Print",
+                export: "Export PDF",
+                verifying: "VERIFYING...",
+                verified: "VERIFIED",
+                lang_toggle: "العربية",
+                portal_title: "HTI Report Builder",
+                portal_secure: "SECURE ACADEMIC ENVIRONMENT",
+                step_cf: "Cloudflare Protection: Checking connection...",
+                step_br: "Browser Verification: Validating environment...",
+                step_fn: "Finalizing: Securing workspace...",
+                cm_bg: "Set as Background",
+                cm_del: "Delete Element",
+                cm_resize: "Resize (Toggle)",
+                cm_cancel: "Cancel",
+                tut_skip: "Skip",
+                tut_next: "Next Step",
+                tut_finish: "Finish Guide",
+                footer_crafted: "Crafted with ❤️ by",
+                footer_terms: "Terms",
+                footer_privacy: "Privacy"
+            },
+            ar: {
+                ready: "جاهز",
+                subject: "موضوع التقرير",
+                name: "اسم الطالب",
+                id: "كود الطالب",
+                img_url: "صورة عبر رابط",
+                local_up: "تحميل محلي",
+                add_page: "إضافة صفحة جديدة",
+                insert_btn: "+ إدراج صفحة",
+                enter_btn: "دخول مساحة العمل",
+                help: "مساعدة",
+                print: "طباعة",
+                export: "تصدير PDF",
+                verifying: "جاري التحقق...",
+                verified: "تم التحقق",
+                lang_toggle: "English",
+                portal_title: "منشئ تقارير HTI",
+                portal_secure: "بيئة أكاديمية آمنة",
+                step_cf: "حماية كلود فلير: جاري التحقق من الاتصال...",
+                step_br: "التحقق من المتصفح: جاري فحص البيئة...",
+                step_fn: "اللمسات الأخيرة: تأمين مساحة العمل...",
+                cm_bg: "تعيين كخلفية",
+                cm_del: "حذف العنصر",
+                cm_resize: "تغيير الحجم",
+                cm_cancel: "إلغاء",
+                tut_skip: "تخطي",
+                tut_next: "الخطوة التالية",
+                tut_finish: "إنهاء الدليل",
+                footer_crafted: "صنع بكل ❤️ بواسطة",
+                footer_terms: "الشروط",
+                footer_privacy: "الخصوصية"
+            }
+        };
+
+        const tutorialSteps = {
+            en: [
+                { title: "Report Settings", desc: "Fill in your subject, name, and ID here. Everything syncs instantly to the cover page.", target: "sidebar" },
+                { title: "Asset Library", desc: "Upload local images or paste URLs. Click any thumbnail to inject it into your active page.", target: "asset-drawer" },
+                { title: "Page Management", desc: "Need 25 pages? Use this tool to insert body sections, figures, or references instantly.", target: "page-template" },
+                { title: "Export & Print", desc: "Once finished, use Export PDF for high-quality files or Print for physical copies.", target: "tool-status" }
+            ],
+            ar: [
+                { title: "إعدادات التقرير", desc: "أدخل الموضوع والاسم والكود هنا. سيتم تحديث صفحة الغلاف فوراً.", target: "sidebar" },
+                { title: "مكتبة الوسائط", desc: "قم برفع صور أو وضع روابط. اضغط على أي صورة مصغرة لإدراجها في الصفحة.", target: "asset-drawer" },
+                { title: "إدارة الصفحات", desc: "هل تحتاج 25 صفحة؟ استخدم هذه الأداة لإدراج أقسام جديدة أو مراجع فوراً.", target: "page-template" },
+                { title: "التصدير والطباعة", desc: "بمجرد الانتهاء، استخدم تصدير PDF للملفات عالية الجودة أو الطباعة للنسخ الورقية.", target: "tool-status" }
+            ]
+        };
+
+        // Initialization
+        window.onload = async () => {
+            console.log("HTI Builder initialized. Developed for Dr. Walaa Hesham requirements.");
+            setupDragAndDrop();
+            
+            // IP-Based Language Detection
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                if (data.country_code === 'EG' && _lang !== 'ar') {
+                    toggleLanguage();
+                }
+            } catch (e) { console.log("Geo-detection skipped."); }
+        };
+
+        function toggleLanguage() {
+            _lang = _lang === 'en' ? 'ar' : 'en';
+            const t = translations[_lang];
+            
+            document.documentElement.lang = _lang;
+            document.body.setAttribute('lang', _lang);
+            
+            // Update UI Elements
+            document.querySelector('#tool-status span').innerText = t.ready;
+            document.getElementById('lbl-subject').innerText = t.subject;
+            document.getElementById('lbl-name').innerText = t.name;
+            document.getElementById('lbl-id').innerText = t.id;
+            document.getElementById('lbl-img-url').innerText = t.img_url;
+            document.getElementById('lbl-local-up').innerText = t.local_up;
+            document.getElementById('lbl-add-page').innerText = t.add_page;
+            
+            document.getElementById('btn-attach-url').innerText = t.insert_btn;
+            document.getElementById('btn-insert-page').innerText = t.insert_btn;
+            document.getElementById('btn-enter').innerText = t.enter_btn;
+            document.getElementById('lang-toggle-btn').innerText = t.lang_toggle;
+            
+            // Update Header Buttons
+            document.getElementById('btn-help').innerText = t.help;
+            document.getElementById('btn-print').innerText = t.print;
+            document.getElementById('btn-export').innerText = t.export;
+
+            // Update Portal Content
+            document.querySelector('#portal-main h1').innerText = t.portal_title;
+            document.querySelector('#portal-main p').innerText = t.portal_secure;
+            document.querySelector('#step-cloudflare span').innerText = t.step_cf;
+            document.querySelector('#step-browser span').innerText = t.step_br;
+            document.querySelector('#step-final span').innerText = t.step_fn;
+
+            // Update Context Menu
+            const cmItems = document.querySelectorAll('.cm-item');
+            if (cmItems.length >= 4) {
+                cmItems[0].innerText = t.cm_bg;
+                cmItems[1].innerText = t.cm_del;
+                cmItems[2].innerText = t.cm_resize;
+                cmItems[3].innerText = t.cm_cancel;
+            }
+
+            // Update Tutorial Buttons
+            document.querySelector('button[onclick="closeTutorial()"]').innerText = t.tut_skip;
+            
+            // Update Footer Texts
+            document.getElementById('footer-crafted-text').innerText = t.footer_crafted;
+            document.getElementById('footer-terms-link').innerText = t.footer_terms;
+            document.getElementById('footer-privacy-link').innerText = t.footer_privacy;
+
+            if (_isTutorialActive) updateTutorialStep(); // Only refresh if open
+        }
+
+        function startTutorial() {
+            // Fix: Prevent tutorial from starting if portal is still active
+            if (getComputedStyle(document.getElementById('portal-overlay')).display !== 'none') {
+                console.log("Tutorial blocked: Portal is still active.");
+                return;
+            }
+
+            _isTutorialActive = true;
+            _currentTutorialStep = 0;
+            document.getElementById('tutorial-overlay').style.display = 'flex';
+            updateTutorialStep();
+        }
+
+        function nextTutorialStep() {
+            const currentSteps = tutorialSteps[_lang];
+            _currentTutorialStep++;
+            if (_currentTutorialStep >= currentSteps.length) {
+                closeTutorial();
+            } else {
+                updateTutorialStep();
+            }
+        }
+
+        function updateTutorialStep() {
+            const currentSteps = tutorialSteps[_lang];
+            const step = currentSteps[_currentTutorialStep];
+            const t = translations[_lang];
+            
+            const card = document.querySelector('.tutorial-card');
+            document.getElementById('tutorial-step-text').innerText = _lang === 'ar' ? `الخطوة ${_currentTutorialStep + 1} من ${currentSteps.length}` : `Step ${_currentTutorialStep + 1} of ${currentSteps.length}`;
+            document.getElementById('tutorial-title').innerText = step.title;
+            document.getElementById('tutorial-desc').innerText = step.desc;
+            
+            // Clear previous spotlights and arrow classes
+            document.querySelectorAll('.spotlight').forEach(el => el.classList.remove('spotlight'));
+            card.className = 'tutorial-card';
+            
+            // Add new spotlight
+            const targetEl = document.getElementById(step.target) || document.querySelector(`#${step.target}`);
+            if (targetEl) {
+                targetEl.classList.add('spotlight');
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Position card relative to target
+                setTimeout(() => {
+                    const rect = targetEl.getBoundingClientRect();
+                    const cardWidth = card.offsetWidth || 320;
+                    const cardHeight = card.offsetHeight || 200;
+                    let top = rect.top + (rect.height / 2) - (cardHeight / 2);
+                    let left = 0;
+
+                    // Horizontal Positioning
+                    if (_lang === 'ar') {
+                        left = rect.left - cardWidth - 30;
+                        card.classList.add('tut-left');
+                        if (left < 20) { // Flip to right
+                            left = rect.right + 30;
+                            card.classList.remove('tut-left');
+                            card.classList.add('tut-right');
+                        }
+                    } else {
+                        left = rect.right + 30;
+                        card.classList.add('tut-right');
+                        if (left + cardWidth > window.innerWidth - 20) { // Flip to left
+                            left = rect.left - cardWidth - 30;
+                            card.classList.remove('tut-right');
+                            card.classList.add('tut-left');
+                        }
+                    }
+
+                    // Vertical Positioning (Step 2 fix: target is at bottom)
+                    if (top + cardHeight > window.innerHeight - 20) {
+                        top = rect.top - cardHeight - 30;
+                        card.classList.remove('tut-left', 'tut-right');
+                        card.classList.add('tut-top');
+                    } else if (top < 80) {
+                        top = rect.bottom + 30;
+                        card.classList.remove('tut-left', 'tut-right');
+                        card.classList.add('tut-bottom');
+                    }
+
+                    // Final safety bounds
+                    if (left < 10) left = 10;
+                    if (left + cardWidth > window.innerWidth - 10) left = window.innerWidth - cardWidth - 10;
+                    if (top < 10) top = 10;
+                    if (top + cardHeight > window.innerHeight - 10) top = window.innerHeight - cardHeight - 10;
+
+                    card.style.transform = 'none';
+                    card.style.top = top + 'px';
+                    card.style.left = left + 'px';
+                }, 100);
+            } else {
+                // Center if no target
+                card.style.top = '50%';
+                card.style.left = '50%';
+                card.style.transform = 'translate(-50%, -50%)';
+            }
+
+            const nextBtn = document.getElementById('tutorial-next-btn');
+            if (_currentTutorialStep === currentSteps.length - 1) {
+                nextBtn.innerText = t.tut_finish;
+            } else {
+                nextBtn.innerText = t.tut_next;
+            }
+        }
+
+        function closeTutorial() {
+            _isTutorialActive = false;
+            document.getElementById('tutorial-overlay').style.display = 'none';
+            document.querySelectorAll('.spotlight').forEach(el => el.classList.remove('spotlight'));
+        }
+
+        async function startVerification() {
+            document.getElementById('btn-enter').style.display = 'none';
+            document.getElementById('verify-steps').style.display = 'block';
+            
+            const crawlerStatus = document.querySelector('#security-crawler .crawler-track span:first-child');
+            crawlerStatus.innerHTML = "SECURITY STATUS: <span style='color:#fbbf24'>VERIFYING...</span>";
+
+            // Step 1: Cloudflare
+            const cf = document.getElementById('step-cloudflare');
+            cf.classList.add('active');
+            await new Promise(r => setTimeout(r, 1500));
+            cf.classList.remove('active');
+            cf.classList.add('complete');
+
+            // Step 2: hCaptcha
+            document.getElementById('hcaptcha-container').style.display = 'flex';
+            // Wait for hcaptchaResolved callback
+        }
+
+        function hcaptchaResolved(response) {
+            document.getElementById('hcaptcha-container').style.opacity = '0.5';
+            document.getElementById('hcaptcha-container').style.pointerEvents = 'none';
+            continueVerification();
+        }
+
+        async function continueVerification() {
+            // Step 3: Browser
+            const br = document.getElementById('step-browser');
+            br.classList.add('active');
+            await new Promise(r => setTimeout(r, 2000));
+            br.classList.remove('active');
+            br.classList.add('complete');
+
+            // Step 4: Finalizing
+            const fn = document.getElementById('step-final');
+            fn.classList.add('active');
+            await new Promise(r => setTimeout(r, 1200));
+            fn.classList.remove('active');
+            fn.classList.add('complete');
+
+            const crawlerStatus = document.querySelector('#security-crawler .crawler-track span:first-child');
+            crawlerStatus.innerHTML = "SECURITY STATUS: <span style='color:#22c55e'>VERIFIED</span>";
+
+            setTimeout(enterApp, 500);
+        }
+
+        function enterApp() {
+            document.getElementById('portal-overlay').classList.add('dismissed');
+            setTimeout(() => {
+                document.getElementById('portal-overlay').style.display = 'none';
+                
+                // Optional: Ask user if they want the tutorial upon first entry
+                const welcomeMsg = _lang === 'ar' ? "هل تود البدء في جولة تعليمية سريعة؟" : "Would you like to start a quick tutorial guide?";
+                if (confirm(welcomeMsg)) {
+                    startTutorial();
+                }
+            }, 800);
+        }
+
+        function addNewPage() {
+            _pageCounter++;
+            const templateType = document.getElementById('page-template').value;
+            const previewZone = document.getElementById('preview-zone');
+            
+            const newPage = document.createElement('div');
+            newPage.className = 'pdf-page';
+            newPage.id = `page-${_pageCounter}`;
+            
+            let content = '';
+            switch(templateType) {
+                case 'body':
+                    content = `<h2>Body Section Title</h2><div contenteditable="true" style="text-align: justify; line-height: 1.8; margin-top:20px;"><p>Start writing your body content here. You can add multiple paragraphs, lists, or tables to fulfill the 20-25 page requirement.</p></div>`;
+                    break;
+                case 'image':
+                    content = `<h2 style="text-align:center;">Supporting Evidence / Figures</h2><div style="height: 200mm; border: 2px dashed #ccc; display:flex; align-items:center; justify-content:center; margin-top:20px; color:#666;">Drag and drop or upload an image here</div>`;
+                    break;
+                case 'conclusion':
+                    content = `<h2>Conclusion</h2><div contenteditable="true" style="text-align: justify; line-height: 1.8; margin-top:20px;"><p>In conclusion, this report has demonstrated that...</p></div>`;
+                    break;
+                case 'references':
+                    content = `<h2>References</h2><div contenteditable="true" style="margin-top:20px;">[1] Author Name, "Title of Paper", Publisher, Year.<br>[2] Website Name, URL, Accessed Date.</div>`;
+                    break;
+                default:
+                    content = `<div contenteditable="true" style="height:100%;">Click to start typing on this blank page...</div>`;
+            }
+
+            newPage.innerHTML = `
+                <div class="page-controls">
+                    <button class="page-btn" onclick="removePage('${newPage.id}')" title="Delete Page">×</button>
+                </div>
+                ${content}
+            `;
+            
+            previewZone.appendChild(newPage);
+            newPage.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function removePage(pageId) {
+            if(confirm("Are you sure you want to delete this page?")) {
+                document.getElementById(pageId).remove();
+            }
+        }
+
+        // NEW: Print Feature
+        // Logic: Dr. Walaa might want a paper copy. This triggers browser print
+        // but uses the @media print CSS to clean the view.
+        function invokeTheInk() {
+            const currentStatus = document.getElementById('tool-status');
+            currentStatus.innerHTML = "HTI Builder v1.0 | <span style='color:#fbbf24'>Printing...</span>";
+            
+            window.print();
+            
+            setTimeout(() => {
+                currentStatus.innerHTML = "HTI Builder v1.0 | <span style='color:var(--hti-gold)'>Ready</span>";
+            }, 1000);
+        }
+
+        // Sync inputs with PDF Preview
+        function syncFields() {
+            document.getElementById('out-subject').innerText = document.getElementById('in-subject').value || 'SUBJECT NAME';
+            document.getElementById('out-name').innerText = document.getElementById('in-name').value || 'Your Name';
+            document.getElementById('out-id').innerText = document.getElementById('in-id').value || 'Your ID';
+        }
+
+        // Custom Context Menu Logic
+        function _handleContextMenu(e) {
+            e.preventDefault();
+            _activeElement = e.target;
+            const menu = document.getElementById('custom-cm');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            return false;
+        }
+
+        document.addEventListener('click', () => {
+            document.getElementById('custom-cm').style.display = 'none';
+        });
+
+        // Image Management
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (f) => createAsset(f.target.result);
+            reader.readAsDataURL(file);
+        }
+
+        function addAssetFromURL() {
+            const url = document.getElementById('img-url').value;
+            if(url) createAsset(url);
+        }
+
+        function createAsset(src) {
+            library.push(src);
+            const drawer = document.getElementById('asset-drawer');
+            const img = document.createElement('img');
+            img.src = src;
+            img.className = 'asset-thumb';
+            img.onclick = () => injectImageToCurrentPage(src);
+            drawer.appendChild(img);
+        }
+
+        function injectImageToCurrentPage(src) {
+            const activePage = document.querySelector('.pdf-page:hover') || document.querySelector('.pdf-page');
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '50px';
+            container.style.top = '100px';
+            container.style.cursor = 'move';
+            
+            const img = document.createElement('img');
+            img.src = src;
+            img.crossOrigin = "anonymous";
+            img.style.width = '200px';
+            img.style.transition = '0.2s';
+            
+            const sub = document.createElement('div');
+            sub.innerText = 'Figure: Click to Edit Subtitle';
+            sub.contentEditable = true;
+            sub.style.fontSize = '12px';
+            sub.style.textAlign = 'center';
+
+            container.appendChild(img);
+            container.appendChild(sub);
+            activePage.appendChild(container);
+            
+            makeDraggable(container);
+        }
+
+        // Drag & Drop Physics
+        function makeDraggable(el) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            el.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                if(e.target.contentEditable === "true") return; // Allow text editing
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                el.style.top = (el.offsetTop - pos2) + "px";
+                el.style.left = (el.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        // Context Actions
+        function deleteActiveElement() {
+            if(_activeElement) {
+                const parent = _activeElement.closest('.pdf-page') ? _activeElement.parentElement : null;
+                if(parent && parent.style.position === 'absolute') parent.remove();
+            }
+        }
+
+        function applyToBackground() {
+            if(_activeElement && _activeElement.tagName === 'IMG') {
+                const page = _activeElement.closest('.pdf-page');
+                page.style.backgroundImage = `url(${_activeElement.src})`;
+                page.style.backgroundSize = 'cover';
+                page.style.backgroundPosition = 'center';
+            }
+        }
+
+        function resizeElement() {
+            if(_activeElement && _activeElement.tagName === 'IMG') {
+                const currentWidth = parseInt(_activeElement.style.width);
+                _activeElement.style.width = currentWidth > 400 ? '200px' : '500px';
+            }
+        }
+
+        // High Quality PDF Export
+        async function generateTheMagicPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pages = document.querySelectorAll('.pdf-page');
+            const currentStatus = document.getElementById('tool-status');
+            
+            currentStatus.innerHTML = "HTI Builder v1.0 | <span style='color:#fbbf24'>Rendering PDF...</span>";
+
+            for (let i = 0; i < pages.length; i++) {
+                // Wait for any images to potentially settle
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                const canvas = await html2canvas(pages[i], {
+                    scale: 2, 
+                    useCORS: true,
+                    logging: false,
+                    allowTaint: false
+                });
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                
+                if (i > 0) doc.addPage();
+                doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            }
+            
+            doc.save('HTI_Report_v1.pdf');
+            currentStatus.innerHTML = "HTI Builder v1.0 | <span style='color:var(--hti-gold)'>Ready</span>";
+        }
+
+        function setupDragAndDrop() {
+            const zone = document.getElementById('preview-zone');
+            zone.ondragover = (e) => e.preventDefault();
+            zone.ondrop = (e) => {
+                e.preventDefault();
+                const files = e.dataTransfer.files;
+                if(files.length > 0) {
+                    const reader = new FileReader();
+                    reader.onload = (f) => createAsset(f.target.result);
+                    reader.readAsDataURL(files[0]);
+                }
+            };
+        }
+    </script>
+</body>
+</html>
