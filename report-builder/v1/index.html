@@ -1183,7 +1183,7 @@
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({
-                            model: "nvidia/nemotron-3-super-120b-a12b:free",
+                            model: "qwen/qwen-2.5-72b-instruct:free",
                             messages: currentMessages,
                             tools: tools.map(t => ({ type: "function", function: t })),
                             tool_choice: "auto"
@@ -1196,6 +1196,10 @@
                     }
 
                     const data = await response.json();
+                    if (data.error) {
+                        console.error("API Provider Error:", data.error);
+                        throw new Error(`Provider Error: ${data.error.message || "Unknown error"}`);
+                    }
                     if (!data.choices || data.choices.length === 0) {
                         console.error("Malformed API response:", data);
                         throw new Error("Invalid API response format");
@@ -1363,7 +1367,7 @@
             }
             
             document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
-            await new Promise(r => setTimeout(r, 1200));
+            await new Promise(r => setTimeout(r, 300));
             
             // Safety check: Only update fxBubble if it was actually used/appended
             if (fxBubble && fxBubble.parentElement) {
