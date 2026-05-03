@@ -896,7 +896,7 @@
                 ai_action_insert: "Inserting new page...",
                 ai_action_content: "Writing content...",
                 ai_action_scrape: "Researching URL content...",
-                ai_sug_1: "Create report about AI",
+                ai_sug_1: "Build a full 25-page report about AI",
                 ai_sug_2: "Summarize this URL...",
                 ai_sug_3: "Add reference from link"
             },
@@ -956,7 +956,7 @@
                 ai_action_insert: "جاري إدراج صفحة جديدة...",
                 ai_action_content: "جاري كتابة المحتوى...",
                 ai_action_scrape: "جاري البحث في محتوى الرابط...",
-                ai_sug_1: "أنشئ تقريراً عن الذكاء الاصطناعي",
+                ai_sug_1: "أنشئ تقريراً كاملاً من 25 صفحة عن الذكاء الاصطناعي",
                 ai_sug_2: "لخص هذا الرابط...",
                 ai_sug_3: "أضف مرجعاً من رابط"
             }
@@ -1100,6 +1100,28 @@
                         },
                         required: ["url"]
                     }
+                },
+                {
+                    name: "bulk_generate_pages",
+                    description: "Generate multiple pages at once with specified templates and content. Use this to quickly build a large report (e.g., up to 25 pages).",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            pages: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    properties: {
+                                        template: { type: "string", enum: ["body", "image", "conclusion", "references", "blank"] },
+                                        title: { type: "string" },
+                                        content: { type: "string" }
+                                    },
+                                    required: ["template"]
+                                }
+                            }
+                        },
+                        required: ["pages"]
+                    }
                 }
             ];
 
@@ -1108,16 +1130,17 @@
                     { 
                         role: "system", 
                         content: `You are "Assistant", an autonomous agentic building tool for HTI students. 
-                        Your goal is to build COMPLETE reports.
+                        Your goal is to build COMPLETE reports, often requiring 25 pages as per Dr. Walaa Hesham's rules.
                         
                         CRITICAL RULES:
                         1. If the user provides a URL, you MUST call 'scrape_url' first to research it.
                         2. Use the researched info to write detailed content and add formal references.
                         3. You can perform MULTIPLE tool calls in sequence. 
-                        4. To build a report: Update Settings -> Research URL -> Insert Page -> Set Content.
-                        5. Current context: ${JSON.stringify(reportContext)}.
-                        6. Page IDs: page-1 (Cover), page-2 (TOC), page-3 (Abstract), page-4 (Intro), page-5+ (New).
-                        7. Always respond in the user's language (${_lang}).` 
+                        4. To build a full report quickly, use 'bulk_generate_pages'. You can generate up to 25 pages in one call if requested.
+                        5. To build a report: Update Settings -> Research URL -> Bulk Generate Pages.
+                        6. Current context: ${JSON.stringify(reportContext)}.
+                        7. Page IDs: page-1 (Cover), page-2 (TOC), page-3 (Abstract), page-4 (Intro), page-5+ (New).
+                        8. Always respond in the user's language (${_lang}).` 
                     },
                     ..._aiHistory,
                     { role: "user", content: text }
@@ -1229,6 +1252,31 @@
                             // Typing effect simulation
                             editable.innerHTML = args.content;
                         }
+                    }
+                    break;
+
+                case 'bulk_generate_pages':
+                    actionText = _lang === 'ar' ? "جاري إنشاء صفحات متعددة..." : "Generating multiple pages...";
+                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span>${actionText}</span>`;
+                    document.getElementById('ai-messages').appendChild(fxBubble);
+                    
+                    for (const pageCfg of args.pages) {
+                        document.getElementById('page-template').value = pageCfg.template;
+                        addNewPage();
+                        const newPage = document.querySelector('.pdf-page:last-child');
+                        if (newPage) {
+                            newPage.classList.add('page-update-glow');
+                            if (pageCfg.title) {
+                                const h2 = newPage.querySelector('h2');
+                                if (h2) h2.innerText = pageCfg.title;
+                            }
+                            const editable = newPage.querySelector('[contenteditable="true"]');
+                            if (editable && pageCfg.content) {
+                                editable.innerHTML = pageCfg.content;
+                            }
+                        }
+                        // Short delay for visual effect
+                        await new Promise(r => setTimeout(r, 100));
                     }
                     break;
 
