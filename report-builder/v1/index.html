@@ -7,6 +7,7 @@
     <!-- External Libs -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
     
     <style>
@@ -283,17 +284,84 @@
             0% { transform: translateX(100%); }
             100% { transform: translateX(-100%); }
         }
+
+        /* Verification Steps UI */
+        #verify-steps {
+            display: none;
+            width: 100%;
+            max-width: 400px;
+            margin-top: 20px;
+            background: rgba(30, 41, 59, 0.5);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            text-align: left;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+        .step.active { color: white; }
+        .step.complete { color: #22c55e; }
+        .step-icon {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #334155;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        .step.active .step-icon { border-color: var(--hti-gold); border-top-color: transparent; animation: spin 1s linear infinite; }
+        .step.complete .step-icon { background: #22c55e; border-color: #22c55e; color: white; }
+        .step.complete .step-icon::after { content: '✓'; }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #hcaptcha-container {
+            display: none;
+            margin: 15px 0;
+            justify-content: center;
+        }
     </style>
 </head>
 <body oncontextmenu="return _handleContextMenu(event)">
 
     <!-- Initial Portal Overlay -->
     <div id="portal-overlay">
-        <div class="portal-content">
+        <div class="portal-content" id="portal-main">
             <img src="hti.png" class="portal-logo" alt="HTI Logo">
             <h1 style="font-family: 'Playfair Display', serif; font-size: 42px; margin-bottom: 10px;">HTI Report Builder</h1>
             <p style="color: var(--hti-gold); letter-spacing: 2px; font-size: 14px; margin-bottom: 30px;">SECURE ACADEMIC ENVIRONMENT</p>
-            <button class="btn" onclick="enterApp()" style="width: 200px; background: white; color: #020617; border-radius: 50px;">Enter Workspace</button>
+            <button class="btn" id="btn-enter" onclick="startVerification()" style="width: 200px; background: white; color: #020617; border-radius: 50px;">Enter Workspace</button>
+            
+            <div id="verify-steps">
+                <div class="step" id="step-cloudflare">
+                    <div class="step-icon"></div>
+                    <span>Cloudflare Protection: Checking connection...</span>
+                </div>
+                
+                <div id="hcaptcha-container">
+                    <div class="h-captcha" data-sitekey="10000000-ffff-ffff-ffff-000000000001" data-callback="hcaptchaResolved"></div>
+                </div>
+
+                <div class="step" id="step-browser">
+                    <div class="step-icon"></div>
+                    <span>Browser Verification: Validating environment...</span>
+                </div>
+
+                <div class="step" id="step-final">
+                    <div class="step-icon"></div>
+                    <span>Finalizing: Securing workspace...</span>
+                </div>
+            </div>
         </div>
 
         <div id="security-crawler">
@@ -462,6 +530,52 @@
             setupDragAndDrop();
             // Initialize existing pages with controls if needed, but usually we only allow deleting new ones
         };
+
+        async function startVerification() {
+            document.getElementById('btn-enter').style.display = 'none';
+            document.getElementById('verify-steps').style.display = 'block';
+            
+            const crawlerStatus = document.querySelector('#security-crawler .crawler-track span:first-child');
+            crawlerStatus.innerHTML = "SECURITY STATUS: <span style='color:#fbbf24'>VERIFYING...</span>";
+
+            // Step 1: Cloudflare
+            const cf = document.getElementById('step-cloudflare');
+            cf.classList.add('active');
+            await new Promise(r => setTimeout(r, 1500));
+            cf.classList.remove('active');
+            cf.classList.add('complete');
+
+            // Step 2: hCaptcha
+            document.getElementById('hcaptcha-container').style.display = 'flex';
+            // Wait for hcaptchaResolved callback
+        }
+
+        function hcaptchaResolved(response) {
+            document.getElementById('hcaptcha-container').style.opacity = '0.5';
+            document.getElementById('hcaptcha-container').style.pointerEvents = 'none';
+            continueVerification();
+        }
+
+        async function continueVerification() {
+            // Step 3: Browser
+            const br = document.getElementById('step-browser');
+            br.classList.add('active');
+            await new Promise(r => setTimeout(r, 2000));
+            br.classList.remove('active');
+            br.classList.add('complete');
+
+            // Step 4: Finalizing
+            const fn = document.getElementById('step-final');
+            fn.classList.add('active');
+            await new Promise(r => setTimeout(r, 1200));
+            fn.classList.remove('active');
+            fn.classList.add('complete');
+
+            const crawlerStatus = document.querySelector('#security-crawler .crawler-track span:first-child');
+            crawlerStatus.innerHTML = "SECURITY STATUS: <span style='color:#22c55e'>VERIFIED</span>";
+
+            setTimeout(enterApp, 500);
+        }
 
         function enterApp() {
             document.getElementById('portal-overlay').classList.add('dismissed');
