@@ -898,8 +898,6 @@
                 ai_action_insert: "Inserting new page...",
                 ai_action_content: "Writing content...",
                 ai_action_scrape: "Researching URL content...",
-                ai_action_diagnostics: "Analyzing report status...",
-                ai_action_read: "Reviewing page content...",
                 ai_sug_1: "Build a full 25-page report about AI",
                 ai_sug_2: "Summarize this URL...",
                 ai_sug_3: "Add reference from link"
@@ -961,8 +959,6 @@
                 ai_action_insert: "جاري إدراج صفحة جديدة...",
                 ai_action_content: "جاري كتابة المحتوى...",
                 ai_action_scrape: "جاري البحث في محتوى الرابط...",
-                ai_action_diagnostics: "جاري تحليل حالة التقرير...",
-                ai_action_read: "جاري مراجعة محتوى الصفحة...",
                 ai_sug_1: "أنشئ تقريراً كاملاً من 25 صفحة عن الذكاء الاصطناعي",
                 ai_sug_2: "لخص هذا الرابط...",
                 ai_sug_3: "أضف مرجعاً من رابط"
@@ -1187,7 +1183,7 @@
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({
-                            model: "google/gemma-3-27b-it:free",
+                            model: "google/gemini-3.1-pro-preview-customtools",
                             messages: currentMessages,
                             tools: tools.map(t => ({ type: "function", function: t })),
                             tool_choice: "auto"
@@ -1256,43 +1252,35 @@
             fxBubble.className = 'ai-action-bubble';
             fxBubble.id = statusId;
             let actionText = "";
-            let result = null;
             
-            // Initial UI setup for most tools
-            if (name !== 'scrape_url') {
-                document.getElementById('ai-messages').appendChild(fxBubble);
-            }
-
             switch(name) {
                 case 'update_report_settings':
                     actionText = t.ai_action_update || "Updating settings...";
-                    const fields = [];
-                    if (args.subject) fields.push(_lang === 'ar' ? "الموضوع" : "Subject");
-                    if (args.name) fields.push(_lang === 'ar' ? "الاسم" : "Name");
-                    if (args.studentId) fields.push(_lang === 'ar' ? "الكود" : "ID");
-                    
-                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span class="status-text">${actionText} (${fields.join(', ')})</span>`;
+                    if (args.subject) actionText += ` (${args.subject})`;
+                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span>${actionText}</span>`;
+                    document.getElementById('ai-messages').appendChild(fxBubble);
                     
                     if (args.subject) { document.getElementById('in-subject').value = args.subject; syncFields(); }
                     if (args.name) { document.getElementById('in-name').value = args.name; syncFields(); }
                     if (args.studentId) { document.getElementById('in-id').value = args.studentId; syncFields(); }
-                    result = { status: "success", updated: fields };
                     break;
                     
                 case 'insert_new_page':
-                    actionText = t.ai_action_insert || "Inserting page...";
-                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span class="status-text">${actionText} (${args.template})</span>`;
+                    actionText = (t.ai_action_insert || "Inserting page...") + ` (${args.template})`;
+                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span>${actionText}</span>`;
+                    document.getElementById('ai-messages').appendChild(fxBubble);
                     
                     document.getElementById('page-template').value = args.template;
                     addNewPage();
                     const newPage = document.querySelector('.pdf-page:last-child');
                     if (newPage) newPage.classList.add('page-update-glow');
-                    result = { status: "success", pageId: newPage?.id };
                     break;
 
                 case 'set_page_content':
-                    actionText = t.ai_action_content || "Writing content...";
-                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span class="status-text">${actionText} -> ${args.pageId}</span>`;
+                    actionText = (t.ai_action_content || "Writing content...") + ` [${args.pageId}]`;
+                    if (args.title) actionText += `: ${args.title}`;
+                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span>${actionText}</span>`;
+                    document.getElementById('ai-messages').appendChild(fxBubble);
                     
                     const page = document.getElementById(args.pageId);
                     if (page) {
@@ -1305,17 +1293,16 @@
                         }
                         const editable = page.querySelector('[contenteditable="true"]');
                         if (editable) {
+                            // Typing effect simulation
                             editable.innerHTML = args.content;
                         }
-                        result = { status: "success", pageId: args.pageId };
-                    } else {
-                        result = { status: "error", detail: "Page not found" };
                     }
                     break;
 
                 case 'bulk_generate_pages':
                     actionText = _lang === 'ar' ? "جاري إنشاء صفحات متعددة..." : "Generating multiple pages...";
                     fxBubble.innerHTML = `<div class="ai-pulse"></div><span class="status-text">${actionText}</span>`;
+                    document.getElementById('ai-messages').appendChild(fxBubble);
                     
                     const statusSpan = fxBubble.querySelector('.status-text');
                     let count = 0;
@@ -1330,14 +1317,14 @@
                         try {
                             document.getElementById('page-template').value = pageCfg.template || 'body';
                             addNewPage();
-                            const bNewPage = document.querySelector('.pdf-page:last-child');
-                            if (bNewPage) {
-                                bNewPage.classList.add('page-update-glow');
+                            const newPage = document.querySelector('.pdf-page:last-child');
+                            if (newPage) {
+                                newPage.classList.add('page-update-glow');
                                 if (pageCfg.title) {
-                                    const h2 = bNewPage.querySelector('h2');
+                                    const h2 = newPage.querySelector('h2');
                                     if (h2) h2.innerText = pageCfg.title;
                                 }
-                                const editable = bNewPage.querySelector('[contenteditable="true"]');
+                                const editable = newPage.querySelector('[contenteditable="true"]');
                                 if (editable && pageCfg.content) {
                                     editable.innerHTML = pageCfg.content;
                                 }
@@ -1345,17 +1332,19 @@
                         } catch (pageErr) {
                             console.error("Error generating page in bulk:", pageErr);
                         }
+                        // Short delay for visual effect and to allow UI to breathe
                         await new Promise(r => setTimeout(r, 200));
                         document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
                     }
-                    result = { status: "success", pagesCreated: args.pages.length };
-                    break;
+                    if (statusSpan) {
+                        statusSpan.innerText = _lang === 'ar' ? 
+                            `تم إنشاء ${args.pages.length} صفحة بنجاح.` : 
+                            `Successfully created ${args.pages.length} pages.`;
+                    }
+                    return { status: "success", pagesCreated: args.pages.length };
 
                 case 'get_report_diagnostics':
-                    actionText = t.ai_action_diagnostics || "Analyzing report status...";
-                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span class="status-text">${actionText}</span>`;
-                    
-                    result = {
+                    return {
                         subject: document.getElementById('in-subject').value,
                         name: document.getElementById('in-name').value,
                         id: document.getElementById('in-id').value,
@@ -1365,59 +1354,47 @@
                             title: p.querySelector('h2')?.innerText || "Untitled"
                         }))
                     };
-                    break;
 
                 case 'read_page_content':
-                    actionText = t.ai_action_read || "Reviewing page content...";
-                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span class="status-text">${actionText} (${args.pageId})</span>`;
-                    
                     const targetPage = document.getElementById(args.pageId);
-                    if (!targetPage) {
-                        result = { error: "Page not found" };
-                    } else {
-                        result = {
-                            id: args.pageId,
-                            title: targetPage.querySelector('h2')?.innerText || "Untitled",
-                            content: targetPage.querySelector('[contenteditable="true"]')?.innerHTML || ""
-                        };
-                    }
-                    break;
+                    if (!targetPage) return { error: "Page not found" };
+                    return {
+                        id: args.pageId,
+                        title: targetPage.querySelector('h2')?.innerText || "Untitled",
+                        content: targetPage.querySelector('[contenteditable="true"]')?.innerHTML || ""
+                    };
 
                 case 'scrape_url':
-                    appendAIMessage(`<div class="ai-thought">${t.ai_action_scrape || "Researching URL content..."}</div>`, 'assistant', statusId);
+                    const researchMsgId = 'scrape-' + Date.now();
+                    actionText = (t.ai_action_scrape || "Researching URL content...") + ` (${args.url.substring(0, 30)}...)`;
+                    appendAIMessage(`<div class="ai-thought">${actionText}</div>`, 'assistant', researchMsgId);
                     try {
                         const scrapeRes = await fetch(`https://r.jina.ai/${args.url}`);
                         const markdown = await scrapeRes.text();
+                        // Add to memory context
                         _aiHistory.push({ role: "system", content: `Research results for ${args.url}: ${markdown.substring(0, 5000)}` });
-                        appendAIMessage(_lang === 'ar' ? `تم البحث في الرابط بنجاح. سأستخدم هذه المعلومات في التقرير.` : `Successfully researched URL. I will use this info in the report.`, 'assistant');
-                        result = { status: "success", url: args.url };
+                        document.getElementById(researchMsgId).innerHTML = _lang === 'ar' ? `تم البحث في الرابط بنجاح: ${args.url.substring(0, 30)}...` : `Successfully researched URL: ${args.url.substring(0, 30)}...`;
+                        return { status: "success", url: args.url, contextLength: markdown.length };
                     } catch (e) {
-                        appendAIMessage(_lang === 'ar' ? "فشل البحث في الرابط." : "Failed to research URL.", 'assistant');
-                        result = { status: "error", detail: e.message };
+                        console.error("Scrape failed", e);
+                        document.getElementById(researchMsgId).innerHTML = _lang === 'ar' ? "فشل البحث في الرابط." : "Failed to research URL.";
+                        return { status: "error", message: e.message };
                     }
                     break;
             }
             
             document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
-            await new Promise(r => setTimeout(r, 400));
+            await new Promise(r => setTimeout(r, 200));
             
-            // Final Success State UI
+            // Safety check: Only update fxBubble if it was actually used/appended
             if (fxBubble && fxBubble.parentElement) {
-                fxBubble.style.opacity = '1';
-                fxBubble.style.background = 'rgba(34, 197, 94, 0.1)';
-                fxBubble.style.borderColor = '#22c55e';
+                fxBubble.style.opacity = '0.5';
                 const pulse = fxBubble.querySelector('.ai-pulse');
                 if (pulse) {
                     pulse.style.animation = 'none';
                     pulse.style.background = '#22c55e';
                 }
-                const statusText = fxBubble.querySelector('.status-text');
-                if (statusText && name !== 'bulk_generate_pages') {
-                    statusText.innerText += " " + (_lang === 'ar' ? "✓" : "✓");
-                }
             }
-            
-            return result;
         }
 
         function appendAIMessage(content, sender, id = null) {
