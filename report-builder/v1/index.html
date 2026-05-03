@@ -519,11 +519,11 @@
                 </div>
                 
                 <div style="margin-top: 30px; padding-top: 15px; border-top: 1px solid rgba(71, 85, 105, 0.3); font-size: 12px; color: #94a3b8; text-align: center;">
-                    Crafted with ❤️ by <br>
+                    <span id="footer-crafted-text">Crafted with ❤️ by</span> <br>
                     <span style="color: var(--hti-gold); font-weight: 600;">Youssef Ayman</span>
                     <div style="margin-top: 10px;">
-                        <a href="terms.html" target="_blank" style="color: #64748b; text-decoration: none; margin-right: 10px;">Terms</a>
-                        <a href="privacy.html" target="_blank" style="color: #64748b; text-decoration: none;">Privacy</a>
+                        <a href="terms.html" id="footer-terms-link" target="_blank" style="color: #64748b; text-decoration: none; margin-right: 10px;">Terms</a>
+                        <a href="privacy.html" id="footer-privacy-link" target="_blank" style="color: #64748b; text-decoration: none;">Privacy</a>
                     </div>
                 </div>
             </aside>
@@ -617,7 +617,22 @@
                 export: "Export PDF",
                 verifying: "VERIFYING...",
                 verified: "VERIFIED",
-                lang_toggle: "العربية"
+                lang_toggle: "العربية",
+                portal_title: "HTI Report Builder",
+                portal_secure: "SECURE ACADEMIC ENVIRONMENT",
+                step_cf: "Cloudflare Protection: Checking connection...",
+                step_br: "Browser Verification: Validating environment...",
+                step_fn: "Finalizing: Securing workspace...",
+                cm_bg: "Set as Background",
+                cm_del: "Delete Element",
+                cm_resize: "Resize (Toggle)",
+                cm_cancel: "Cancel",
+                tut_skip: "Skip",
+                tut_next: "Next Step",
+                tut_finish: "Finish Guide",
+                footer_crafted: "Crafted with ❤️ by",
+                footer_terms: "Terms",
+                footer_privacy: "Privacy"
             },
             ar: {
                 ready: "جاهز",
@@ -634,32 +649,39 @@
                 export: "تصدير PDF",
                 verifying: "جاري التحقق...",
                 verified: "تم التحقق",
-                lang_toggle: "English"
+                lang_toggle: "English",
+                portal_title: "منشئ تقارير HTI",
+                portal_secure: "بيئة أكاديمية آمنة",
+                step_cf: "حماية كلود فلير: جاري التحقق من الاتصال...",
+                step_br: "التحقق من المتصفح: جاري فحص البيئة...",
+                step_fn: "اللمسات الأخيرة: تأمين مساحة العمل...",
+                cm_bg: "تعيين كخلفية",
+                cm_del: "حذف العنصر",
+                cm_resize: "تغيير الحجم",
+                cm_cancel: "إلغاء",
+                tut_skip: "تخطي",
+                tut_next: "الخطوة التالية",
+                tut_finish: "إنهاء الدليل",
+                footer_crafted: "صنع بكل ❤️ بواسطة",
+                footer_terms: "الشروط",
+                footer_privacy: "الخصوصية"
             }
         };
 
-        const tutorialSteps = [
-            {
-                title: "Report Settings",
-                desc: "Fill in your subject, name, and ID here. Everything syncs instantly to the cover page.",
-                target: "sidebar"
-            },
-            {
-                title: "Asset Library",
-                desc: "Upload local images or paste URLs. Click any thumbnail to inject it into your active page.",
-                target: "asset-drawer"
-            },
-            {
-                title: "Page Management",
-                desc: "Need 25 pages? Use this tool to insert body sections, figures, or references instantly.",
-                target: "page-template"
-            },
-            {
-                title: "Export & Print",
-                desc: "Once finished, use Export PDF for high-quality files or Print for physical copies.",
-                target: "tool-status"
-            }
-        ];
+        const tutorialSteps = {
+            en: [
+                { title: "Report Settings", desc: "Fill in your subject, name, and ID here. Everything syncs instantly to the cover page.", target: "sidebar" },
+                { title: "Asset Library", desc: "Upload local images or paste URLs. Click any thumbnail to inject it into your active page.", target: "asset-drawer" },
+                { title: "Page Management", desc: "Need 25 pages? Use this tool to insert body sections, figures, or references instantly.", target: "page-template" },
+                { title: "Export & Print", desc: "Once finished, use Export PDF for high-quality files or Print for physical copies.", target: "tool-status" }
+            ],
+            ar: [
+                { title: "إعدادات التقرير", desc: "أدخل الموضوع والاسم والكود هنا. سيتم تحديث صفحة الغلاف فوراً.", target: "sidebar" },
+                { title: "مكتبة الوسائط", desc: "قم برفع صور أو وضع روابط. اضغط على أي صورة مصغرة لإدراجها في الصفحة.", target: "asset-drawer" },
+                { title: "إدارة الصفحات", desc: "هل تحتاج 25 صفحة؟ استخدم هذه الأداة لإدراج أقسام جديدة أو مراجع فوراً.", target: "page-template" },
+                { title: "التصدير والطباعة", desc: "بمجرد الانتهاء، استخدم تصدير PDF للملفات عالية الجودة أو الطباعة للنسخ الورقية.", target: "tool-status" }
+            ]
+        };
 
         // Initialization
         window.onload = async () => {
@@ -701,6 +723,32 @@
             document.getElementById('btn-help').innerText = t.help;
             document.getElementById('btn-print').innerText = t.print;
             document.getElementById('btn-export').innerText = t.export;
+
+            // Update Portal Content
+            document.querySelector('#portal-main h1').innerText = t.portal_title;
+            document.querySelector('#portal-main p').innerText = t.portal_secure;
+            document.querySelector('#step-cloudflare span').innerText = t.step_cf;
+            document.querySelector('#step-browser span').innerText = t.step_br;
+            document.querySelector('#step-final span').innerText = t.step_fn;
+
+            // Update Context Menu
+            const cmItems = document.querySelectorAll('.cm-item');
+            if (cmItems.length >= 4) {
+                cmItems[0].innerText = t.cm_bg;
+                cmItems[1].innerText = t.cm_del;
+                cmItems[2].innerText = t.cm_resize;
+                cmItems[3].innerText = t.cm_cancel;
+            }
+
+            // Update Tutorial Buttons
+            document.querySelector('button[onclick="closeTutorial()"]').innerText = t.tut_skip;
+            
+            // Update Footer Texts
+            document.getElementById('footer-crafted-text').innerText = t.footer_crafted;
+            document.getElementById('footer-terms-link').innerText = t.footer_terms;
+            document.getElementById('footer-privacy-link').innerText = t.footer_privacy;
+
+            updateTutorialStep(); // Refresh current tutorial text if open
         }
 
         function startTutorial() {
@@ -710,8 +758,9 @@
         }
 
         function nextTutorialStep() {
+            const currentSteps = tutorialSteps[_lang];
             _currentTutorialStep++;
-            if (_currentTutorialStep >= tutorialSteps.length) {
+            if (_currentTutorialStep >= currentSteps.length) {
                 closeTutorial();
             } else {
                 updateTutorialStep();
@@ -719,8 +768,11 @@
         }
 
         function updateTutorialStep() {
-            const step = tutorialSteps[_currentTutorialStep];
-            document.getElementById('tutorial-step-text').innerText = `Step ${_currentTutorialStep + 1} of ${tutorialSteps.length}`;
+            const currentSteps = tutorialSteps[_lang];
+            const step = currentSteps[_currentTutorialStep];
+            const t = translations[_lang];
+            
+            document.getElementById('tutorial-step-text').innerText = _lang === 'ar' ? `الخطوة ${_currentTutorialStep + 1} من ${currentSteps.length}` : `Step ${_currentTutorialStep + 1} of ${currentSteps.length}`;
             document.getElementById('tutorial-title').innerText = step.title;
             document.getElementById('tutorial-desc').innerText = step.desc;
             
@@ -734,10 +786,11 @@
                 targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
 
-            if (_currentTutorialStep === tutorialSteps.length - 1) {
-                document.getElementById('tutorial-next-btn').innerText = "Finish Guide";
+            const nextBtn = document.getElementById('tutorial-next-btn');
+            if (_currentTutorialStep === currentSteps.length - 1) {
+                nextBtn.innerText = t.tut_finish;
             } else {
-                document.getElementById('tutorial-next-btn').innerText = "Next Step";
+                nextBtn.innerText = t.tut_next;
             }
         }
 
