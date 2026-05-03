@@ -1183,7 +1183,7 @@
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({
-                            model: "meta-llama/llama-3.3-70b-instruct:free",
+                            model: "deepseek/deepseek-v3:free",
                             messages: currentMessages,
                             tools: tools.map(t => ({ type: "function", function: t })),
                             tool_choice: "auto"
@@ -1192,25 +1192,19 @@
                     
                     if (!response.ok) {
                         const errBody = await response.text();
-                        console.error("OpenRouter Error:", errBody);
-                        let errorMsg = `API Error ${response.status}`;
-                        try {
-                            const parsedErr = JSON.parse(errBody);
-                            if (parsedErr.error && parsedErr.error.message) {
-                                errorMsg += `: ${parsedErr.error.message}`;
-                            }
-                        } catch(e) {}
-                        throw new Error(errorMsg);
+                        if (response.status === 524) {
+                            throw new Error(_lang === 'ar' ? "انتهت مهلة خادم الذكاء الاصطناعي (524). يرجى المحاولة مرة أخرى." : "AI Server Timeout (524). The provider is taking too long. Please try again.");
+                        }
+                        throw new Error(`API Error ${response.status}: ${errBody}`);
                     }
 
                     const data = await response.json();
                     if (data.error) {
-                        console.error("API Response contained error:", data.error);
-                        throw new Error(`Provider Error: ${data.error.message || JSON.stringify(data.error)}`);
+                        throw new Error(`AI Error: ${data.error.message || "Unknown error"}`);
                     }
                     if (!data.choices || data.choices.length === 0) {
                         console.error("Malformed API response:", data);
-                        throw new Error("Invalid API response format (no choices)");
+                        throw new Error("Invalid API response format");
                     }
                     const message = data.choices[0].message;
                     currentMessages.push(message);
