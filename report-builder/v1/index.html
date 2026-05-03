@@ -1104,52 +1104,72 @@
             ];
 
             try {
-                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${_aiApiKey}`,
-                        "Content-Type": "application/json"
+                let currentMessages = [
+                    { 
+                        role: "system", 
+                        content: `You are "Assistant", an autonomous agentic building tool for HTI students. 
+                        Your goal is to build COMPLETE reports.
+                        
+                        CRITICAL RULES:
+                        1. If the user provides a URL, you MUST call 'scrape_url' first to research it.
+                        2. Use the researched info to write detailed content and add formal references.
+                        3. You can perform MULTIPLE tool calls in sequence. 
+                        4. To build a report: Update Settings -> Research URL -> Insert Page -> Set Content.
+                        5. Current context: ${JSON.stringify(reportContext)}.
+                        6. Page IDs: page-1 (Cover), page-2 (TOC), page-3 (Abstract), page-4 (Intro), page-5+ (New).
+                        7. Always respond in the user's language (${_lang}).` 
                     },
-                    body: JSON.stringify({
-                        model: "nvidia/nemotron-3-super-120b-a12b:free",
-                        messages: [
-                            { 
-                                role: "system", 
-                                content: `You are "Assistant", an agentic building tool for HTI students. You can DIRECTLY modify the report and research URLs.
-                                IMPORTANT:
-                                1. To update settings, use update_report_settings.
-                                2. To add/update sections, use insert_new_page and set_page_content.
-                                3. To research a URL the user provides, use scrape_url. Use the info from the scraper to write the report and add formal citations/references.
-                                4. Current report context: ${JSON.stringify(reportContext)}.
-                                5. Page 1: Cover, 2: TOC, 3: Abstract, 4: Intro. New: page-5+.
-                                6. Always respond in ${_lang}.` 
-                            },
-                            ..._aiHistory,
-                            { role: "user", content: text }
-                        ],
-                        tools: tools.map(t => ({ type: "function", function: t })),
-                        tool_choice: "auto"
-                    })
-                });
-                
-                const data = await response.json();
-                const message = data.choices[0].message;
-                
-                document.getElementById(thinkingId).remove();
+                    ..._aiHistory,
+                    { role: "user", content: text }
+                ];
 
-                if (message.tool_calls) {
-                    for (const toolCall of message.tool_calls) {
-                        const name = toolCall.function.name;
-                        const args = JSON.parse(toolCall.function.arguments);
-                        await executeAITool(name, args);
+                let turnLimit = 5; // Prevent infinite loops
+                while (turnLimit > 0) {
+                    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                        method: "POST",
+                        headers: {
+                            "Authorization": `Bearer ${_aiApiKey}`,
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            model: "nvidia/nemotron-3-super-120b-a12b:free",
+                            messages: currentMessages,
+                            tools: tools.map(t => ({ type: "function", function: t })),
+                            tool_choice: "auto"
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    const message = data.choices[0].message;
+                    currentMessages.push(message);
+
+                    if (message.tool_calls) {
+                        for (const toolCall of message.tool_calls) {
+                            const name = toolCall.function.name;
+                            const args = JSON.parse(toolCall.function.arguments);
+                            const result = await executeAITool(name, args);
+                            
+                            // Add tool result back to conversation so AI knows it succeeded
+                            currentMessages.push({
+                                role: "tool",
+                                tool_call_id: toolCall.id,
+                                name: name,
+                                content: JSON.stringify({ status: "success", detail: result || "Action completed" })
+                            });
+                        }
+                        turnLimit--;
+                    } else {
+                        // Final text response
+                        document.getElementById(thinkingId)?.remove();
+                        const aiText = message.content;
+                        appendAIMessage(aiText, 'assistant');
+                        
+                        // Update history
+                        _aiHistory.push({ role: "user", content: text });
+                        _aiHistory.push({ role: "assistant", content: aiText });
+                        if (_aiHistory.length > 10) _aiHistory.splice(0, 2);
+                        break;
                     }
-                    // Optional: Get a follow-up response from AI after actions
-                    appendAIMessage(_lang === 'ar' ? "لقد قمت بتحديث التقرير كما طلبت. هل هناك شيء آخر؟" : "I've updated the report as requested. Anything else?", 'assistant');
-                } else {
-                    const aiText = message.content;
-                    appendAIMessage(aiText, 'assistant');
-                    _aiHistory.push({ role: "user", content: text });
-                    _aiHistory.push({ role: "assistant", content: aiText });
                 }
 
             } catch (e) {
