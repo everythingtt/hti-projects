@@ -25,17 +25,14 @@
         [lang="ar"] .page-controls { right: auto; left: -50px; }
         [lang="ar"] .tutorial-card { text-align: right; }
         [lang="ar"] .tutorial-actions { flex-direction: row-reverse; }
-
-        /* Fix: PDF Preview should ALWAYS be LTR to preserve A4 simulation layout */
-        #preview-zone { direction: ltr !important; }
-        .pdf-page { direction: ltr !important; text-align: left; }
+        [lang="ar"] .crawler-track { animation-name: crawl-rtl; }
+        [lang="ar"] #tool-status span:last-child { margin-left: 0; margin-right: 15px; }
+        [lang="ar"] .scanner-item span:first-child { margin-right: 0; margin-left: 10px; }
         
-        /* Fix: Header layout in RTL */
-        [lang="ar"] header { flex-direction: row-reverse; }
-        [lang="ar"] header div[style*="flex"] { flex-direction: row-reverse; }
-        
-        /* Fix: Crawler animation should not be flipped by RTL direction */
-        #security-crawler { direction: ltr !important; }
+        @keyframes crawl-rtl {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
 
         /* Essential Reset & Body */
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -452,9 +449,9 @@
             <div id="tool-status">HTI Builder v1.0 | <span style="color:var(--hti-gold)">Ready</span> <span style="margin-left:15px; font-size:11px; opacity:0.6; font-weight:normal;">Developed by Youssef Ayman</span></div>
             <div style="display: flex; gap: 10px;">
                 <button onclick="toggleLanguage()" class="btn" id="lang-toggle-btn" style="width:auto; padding: 5px 15px; background: #1e40af; color: white;">العربية</button>
-                <button onclick="startTutorial()" class="btn" style="width:auto; padding: 5px 15px; background: transparent; border: 1px solid #475569; color: #94a3b8;">Help</button>
-                <button onclick="invokeTheInk()" class="btn" style="width:auto; padding: 5px 15px; background: #475569; color: white;">Print</button>
-                <button onclick="generateTheMagicPDF()" class="btn" style="width:auto; padding: 5px 15px;">Export PDF</button>
+                <button onclick="startTutorial()" class="btn" id="btn-help" style="width:auto; padding: 5px 15px; background: transparent; border: 1px solid #475569; color: #94a3b8;">Help</button>
+                <button onclick="invokeTheInk()" class="btn" id="btn-print" style="width:auto; padding: 5px 15px; background: #475569; color: white;">Print</button>
+                <button onclick="generateTheMagicPDF()" class="btn" id="btn-export" style="width:auto; padding: 5px 15px;">Export PDF</button>
             </div>
         </header>
 
@@ -475,36 +472,36 @@
             <aside id="sidebar">
                 <h3 style="margin-bottom:20px; border-bottom: 1px solid #475569;">Report Settings</h3>
                 <div class="input-group">
-                    <label>Report Subject</label>
+                    <label id="lbl-subject">Report Subject</label>
                     <input type="text" id="in-subject" placeholder="Enter Subject Name..." oninput="syncFields()">
                 </div>
                 <div class="input-group">
-                    <label>Student Name</label>
+                    <label id="lbl-name">Student Name</label>
                     <input type="text" id="in-name" placeholder="Youssef Ayman" oninput="syncFields()">
                 </div>
                 <div class="input-group">
-                    <label>Student ID</label>
+                    <label id="lbl-id">Student ID</label>
                     <input type="text" id="in-id" placeholder="202XXXXX" oninput="syncFields()">
                 </div>
                 
                 <hr style="opacity:0.2; margin: 20px 0;">
                 
                 <div class="input-group">
-                    <label>Image via URL</label>
+                    <label id="lbl-img-url">Image via URL</label>
                     <input type="text" id="img-url" placeholder="Paste link here...">
-                    <button class="btn" onclick="addAssetFromURL()" style="background:#475569; color:white;">Attach from Link</button>
+                    <button class="btn" id="btn-attach-url" onclick="addAssetFromURL()" style="background:#475569; color:white;">Attach from Link</button>
                 </div>
                 
                 <div class="input-group">
-                    <label>Local Upload</label>
+                    <label id="lbl-local-up">Local Upload</label>
                     <input type="file" id="img-file" accept="image/*" style="display:none" onchange="handleFileUpload(event)">
-                    <button class="btn" onclick="document.getElementById('img-file').click()" style="background:#1e40af; color:white;">Upload Image</button>
+                    <button class="btn" id="btn-upload-local" onclick="document.getElementById('img-file').click()" style="background:#1e40af; color:white;">Upload Image</button>
                 </div>
 
                 <hr style="opacity:0.2; margin: 20px 0;">
 
                 <div class="input-group">
-                    <label>Add New Page</label>
+                    <label id="lbl-add-page">Add New Page</label>
                     <select id="page-template" style="margin-bottom: 10px;">
                         <option value="body">Body Content (Standard)</option>
                         <option value="image">Full Page Image/Figure</option>
@@ -512,7 +509,7 @@
                         <option value="references">References</option>
                         <option value="blank">Blank Page</option>
                     </select>
-                    <button class="btn" onclick="addNewPage()" style="background:#10b981; color:white;">+ Insert Page</button>
+                    <button class="btn" id="btn-insert-page" onclick="addNewPage()" style="background:#10b981; color:white;">+ Insert Page</button>
                 </div>
 
                 <div style="font-size: 11px; color: #64748b; margin-top: 20px;">
@@ -688,23 +685,22 @@
             
             // Update UI Elements
             document.querySelector('#tool-status span').innerText = t.ready;
-            document.querySelector('label[for="in-subject"]')?.innerText || (document.querySelectorAll('.input-group label')[0].innerText = t.subject);
-            document.querySelectorAll('.input-group label')[1].innerText = t.name;
-            document.querySelectorAll('.input-group label')[2].innerText = t.id;
-            document.querySelectorAll('.input-group label')[3].innerText = t.img_url;
-            document.querySelectorAll('.input-group label')[4].innerText = t.local_up;
-            document.querySelectorAll('.input-group label')[5].innerText = t.add_page;
+            document.getElementById('lbl-subject').innerText = t.subject;
+            document.getElementById('lbl-name').innerText = t.name;
+            document.getElementById('lbl-id').innerText = t.id;
+            document.getElementById('lbl-img-url').innerText = t.img_url;
+            document.getElementById('lbl-local-up').innerText = t.local_up;
+            document.getElementById('lbl-add-page').innerText = t.add_page;
             
-            document.querySelector('button[onclick="addAssetFromURL()"]').innerText = t.insert_btn;
-            document.querySelector('button[onclick="addNewPage()"]').innerText = t.insert_btn;
-            document.querySelector('#btn-enter').innerText = t.enter_btn;
-            document.querySelector('#lang-toggle-btn').innerText = t.lang_toggle;
+            document.getElementById('btn-attach-url').innerText = t.insert_btn;
+            document.getElementById('btn-insert-page').innerText = t.insert_btn;
+            document.getElementById('btn-enter').innerText = t.enter_btn;
+            document.getElementById('lang-toggle-btn').innerText = t.lang_toggle;
             
             // Update Header Buttons
-            const headerBtns = document.querySelectorAll('header .btn');
-            headerBtns[1].innerText = t.help;
-            headerBtns[2].innerText = t.print;
-            headerBtns[3].innerText = t.export;
+            document.getElementById('btn-help').innerText = t.help;
+            document.getElementById('btn-print').innerText = t.print;
+            document.getElementById('btn-export').innerText = t.export;
         }
 
         function startTutorial() {
