@@ -909,7 +909,7 @@
             try {
                 const res = await fetch('https://api.jsonbin.io/v3/b/69f77b52856a682189a03ef6');
                 const data = await res.json();
-                _aiApiKey = data.record.key;
+                _aiApiKey = data.record.openrouter;
             } catch (e) { console.error("AI Init failed."); }
 
             // IP-Based Language Detection
@@ -938,15 +938,27 @@
         async function sendAIMessage() {
             const input = document.getElementById('ai-user-input');
             const text = input.value.trim();
-            if (!text || !_aiApiKey) return;
+            if (!text) return;
 
-            // Add user bubble
+            // Add user bubble immediately
             appendAIMessage(text, 'user');
             input.value = '';
 
+            // Ensure API Key is available
+            if (!_aiApiKey) {
+                try {
+                    const res = await fetch('https://api.jsonbin.io/v3/b/69f77b52856a682189a03ef6');
+                    const data = await res.json();
+                    _aiApiKey = data.record.openrouter;
+                } catch (e) {
+                    appendAIMessage("Assistant is still initializing. Please wait a moment...", 'assistant');
+                    return;
+                }
+            }
+
             // Add thinking animation
             const thinkingId = 'thinking-' + Date.now();
-            appendAIMessage('<div class="ai-thought">' + translations[_lang].ai_thinking + '</div><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>', 'assistant', thinkingId);
+            appendAIMessage('<div class="ai-thought">' + (translations[_lang].ai_thinking || "Thinking...") + '</div><div class="typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>', 'assistant', thinkingId);
 
             // Context Gathering
             const reportContext = {
