@@ -600,6 +600,7 @@
         let _pageCounter = 4; // Starting after the 4 initial pages
         let _currentTutorialStep = 0;
         let _lang = 'en';
+        let _isTutorialActive = false;
 
         const translations = {
             en: {
@@ -748,16 +749,17 @@
             document.getElementById('footer-terms-link').innerText = t.footer_terms;
             document.getElementById('footer-privacy-link').innerText = t.footer_privacy;
 
-            updateTutorialStep(); // Refresh current tutorial text if open
+            if (_isTutorialActive) updateTutorialStep(); // Only refresh if open
         }
 
         function startTutorial() {
             // Fix: Prevent tutorial from starting if portal is still active
-            if (document.getElementById('portal-overlay').style.display !== 'none') {
+            if (getComputedStyle(document.getElementById('portal-overlay')).display !== 'none') {
                 console.log("Tutorial blocked: Portal is still active.");
                 return;
             }
 
+            _isTutorialActive = true;
             _currentTutorialStep = 0;
             document.getElementById('tutorial-overlay').style.display = 'flex';
             updateTutorialStep();
@@ -801,6 +803,7 @@
         }
 
         function closeTutorial() {
+            _isTutorialActive = false;
             document.getElementById('tutorial-overlay').style.display = 'none';
             document.querySelectorAll('.spotlight').forEach(el => el.classList.remove('spotlight'));
         }
