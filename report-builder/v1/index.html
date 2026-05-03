@@ -223,9 +223,101 @@
             header { padding: 10px; }
             .brand-logo { height: 30px; }
         }
+
+        /* Portal & Security Crawler */
+        #portal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #020617;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.8s cubic-bezier(0.87, 0, 0.13, 1);
+        }
+        #portal-overlay.dismissed { transform: translateY(-100%); }
+        
+        .portal-content { text-align: center; color: white; }
+        .portal-logo { width: 120px; margin-bottom: 20px; animation: pulse 2s infinite; }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        #security-crawler {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border-top: 1px solid var(--hti-gold);
+            padding: 10px 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+        }
+        .crawler-track {
+            display: flex;
+            gap: 50px;
+            animation: crawl 20s linear infinite;
+            white-space: nowrap;
+            align-items: center;
+        }
+        .scanner-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #94a3b8;
+            font-size: 13px;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .scanner-item:hover { color: var(--hti-gold); }
+        .scanner-img { height: 24px; filter: grayscale(1) brightness(2); transition: 0.3s; }
+        .scanner-item:hover .scanner-img { filter: none; }
+
+        @keyframes crawl {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
     </style>
 </head>
 <body oncontextmenu="return _handleContextMenu(event)">
+
+    <!-- Initial Portal Overlay -->
+    <div id="portal-overlay">
+        <div class="portal-content">
+            <img src="hti.png" class="portal-logo" alt="HTI Logo">
+            <h1 style="font-family: 'Playfair Display', serif; font-size: 42px; margin-bottom: 10px;">HTI Report Builder</h1>
+            <p style="color: var(--hti-gold); letter-spacing: 2px; font-size: 14px; margin-bottom: 30px;">SECURE ACADEMIC ENVIRONMENT</p>
+            <button class="btn" onclick="enterApp()" style="width: 200px; background: white; color: #020617; border-radius: 50px;">Enter Workspace</button>
+        </div>
+
+        <div id="security-crawler">
+            <div class="crawler-track">
+                <span style="color: var(--hti-gold); font-weight: bold; margin-right: 20px;">SECURITY STATUS:</span>
+                <a href="https://www.virustotal.com/gui/url/0ec237d2f43442a51fc3c6d7b278421a1424e760b9282392dd46a8729548f19c/detection" target="_blank" class="scanner-item">
+                    <img src="virustotal.png" class="scanner-img"> Scanned with VirusTotal (Clean)
+                </a>
+                <a href="screenshot-2026-05-03-182611.png" target="_blank" class="scanner-item">
+                    <img src="malware_scanner.png" class="scanner-img"> Malware Scanner Verified
+                </a>
+                <span class="scanner-item" style="pointer-events: none;">
+                    <span style="color: #22c55e;">●</span> SSL Encryption Active
+                </span>
+                <span class="scanner-item" style="pointer-events: none;">
+                    <span style="color: #22c55e;">●</span> Dr. Walaa Hesham Rule Validation Active
+                </span>
+                <!-- Duplicate for seamless loop if track is short -->
+                <a href="https://www.virustotal.com/gui/url/0ec237d2f43442a51fc3c6d7b278421a1424e760b9282392dd46a8729548f19c/detection" target="_blank" class="scanner-item">
+                    <img src="virustotal.png" class="scanner-img"> VirusTotal Detection: 0/93
+                </a>
+            </div>
+        </div>
+    </div>
 
     <div id="app-shell">
         <header>
@@ -370,6 +462,13 @@
             setupDragAndDrop();
             // Initialize existing pages with controls if needed, but usually we only allow deleting new ones
         };
+
+        function enterApp() {
+            document.getElementById('portal-overlay').classList.add('dismissed');
+            setTimeout(() => {
+                document.getElementById('portal-overlay').style.display = 'none';
+            }, 800);
+        }
 
         function addNewPage() {
             _pageCounter++;
