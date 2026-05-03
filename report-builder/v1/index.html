@@ -135,6 +135,34 @@
         }
         .asset-thumb:hover { border-color: var(--hti-gold); }
 
+        /* Page Management UI */
+        .page-controls {
+            position: absolute;
+            right: -50px;
+            top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            opacity: 0;
+            transition: 0.3s;
+        }
+        .pdf-page:hover .page-controls { opacity: 1; }
+        .page-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .page-btn:hover { transform: scale(1.1); background: #dc2626; }
+
         /* Editable Elements */
         [contenteditable]:focus { outline: 2px dashed var(--hti-gold); padding: 5px; }
 
@@ -239,6 +267,20 @@
                     <button class="btn" onclick="document.getElementById('img-file').click()" style="background:#1e40af; color:white;">Upload Image</button>
                 </div>
 
+                <hr style="opacity:0.2; margin: 20px 0;">
+
+                <div class="input-group">
+                    <label>Add New Page</label>
+                    <select id="page-template" style="margin-bottom: 10px;">
+                        <option value="body">Body Content (Standard)</option>
+                        <option value="image">Full Page Image/Figure</option>
+                        <option value="conclusion">Conclusion</option>
+                        <option value="references">References</option>
+                        <option value="blank">Blank Page</option>
+                    </select>
+                    <button class="btn" onclick="addNewPage()" style="background:#10b981; color:white;">+ Insert Page</button>
+                </div>
+
                 <div style="font-size: 11px; color: #64748b; margin-top: 20px;">
                     * Dr. Walaa Hesham Supervision rule applied. <br>
                     * TOC Roman numerals active. <br>
@@ -269,7 +311,7 @@
                 <!-- Page 2: TOC -->
                 <div class="pdf-page" id="page-2">
                     <h2 style="text-align:center; border-bottom: 2px solid #000; padding-bottom: 10px;">Table of Contents</h2>
-                    <div id="toc-list" style="margin-top: 30px; font-size: 18px; line-height: 2.5;">
+                    <div id="toc-list" contenteditable="true" style="margin-top: 30px; font-size: 18px; line-height: 2.5; outline:none;">
                         <div style="display:flex; justify-content:space-between"><span>I. Abstract</span> <span>3</span></div>
                         <div style="display:flex; justify-content:space-between"><span>II. Introduction</span> <span>4</span></div>
                         <div style="display:flex; justify-content:space-between"><span>III. Body Content</span> <span>6</span></div>
@@ -320,12 +362,58 @@
 
         let _activeElement = null;
         const library = [];
+        let _pageCounter = 4; // Starting after the 4 initial pages
 
         // Initialization
         window.onload = () => {
             console.log("HTI Builder initialized. Developed for Dr. Walaa Hesham requirements.");
             setupDragAndDrop();
+            // Initialize existing pages with controls if needed, but usually we only allow deleting new ones
         };
+
+        function addNewPage() {
+            _pageCounter++;
+            const templateType = document.getElementById('page-template').value;
+            const previewZone = document.getElementById('preview-zone');
+            
+            const newPage = document.createElement('div');
+            newPage.className = 'pdf-page';
+            newPage.id = `page-${_pageCounter}`;
+            
+            let content = '';
+            switch(templateType) {
+                case 'body':
+                    content = `<h2>Body Section Title</h2><div contenteditable="true" style="text-align: justify; line-height: 1.8; margin-top:20px;"><p>Start writing your body content here. You can add multiple paragraphs, lists, or tables to fulfill the 20-25 page requirement.</p></div>`;
+                    break;
+                case 'image':
+                    content = `<h2 style="text-align:center;">Supporting Evidence / Figures</h2><div style="height: 200mm; border: 2px dashed #ccc; display:flex; align-items:center; justify-content:center; margin-top:20px; color:#666;">Drag and drop or upload an image here</div>`;
+                    break;
+                case 'conclusion':
+                    content = `<h2>Conclusion</h2><div contenteditable="true" style="text-align: justify; line-height: 1.8; margin-top:20px;"><p>In conclusion, this report has demonstrated that...</p></div>`;
+                    break;
+                case 'references':
+                    content = `<h2>References</h2><div contenteditable="true" style="margin-top:20px;">[1] Author Name, "Title of Paper", Publisher, Year.<br>[2] Website Name, URL, Accessed Date.</div>`;
+                    break;
+                default:
+                    content = `<div contenteditable="true" style="height:100%;">Click to start typing on this blank page...</div>`;
+            }
+
+            newPage.innerHTML = `
+                <div class="page-controls">
+                    <button class="page-btn" onclick="removePage('${newPage.id}')" title="Delete Page">×</button>
+                </div>
+                ${content}
+            `;
+            
+            previewZone.appendChild(newPage);
+            newPage.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function removePage(pageId) {
+            if(confirm("Are you sure you want to delete this page?")) {
+                document.getElementById(pageId).remove();
+            }
+        }
 
         // NEW: Print Feature
         // Logic: Dr. Walaa might want a paper copy. This triggers browser print
