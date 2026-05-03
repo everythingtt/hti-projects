@@ -1183,7 +1183,7 @@
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({
-                            model: "qwen/qwen-2.5-72b-instruct:free",
+                            model: "meta-llama/llama-3.3-70b-instruct:free",
                             messages: currentMessages,
                             tools: tools.map(t => ({ type: "function", function: t })),
                             tool_choice: "auto"
@@ -1192,17 +1192,25 @@
                     
                     if (!response.ok) {
                         const errBody = await response.text();
-                        throw new Error(`API Error ${response.status}: ${errBody}`);
+                        console.error("OpenRouter Error:", errBody);
+                        let errorMsg = `API Error ${response.status}`;
+                        try {
+                            const parsedErr = JSON.parse(errBody);
+                            if (parsedErr.error && parsedErr.error.message) {
+                                errorMsg += `: ${parsedErr.error.message}`;
+                            }
+                        } catch(e) {}
+                        throw new Error(errorMsg);
                     }
 
                     const data = await response.json();
                     if (data.error) {
-                        console.error("API Provider Error:", data.error);
-                        throw new Error(`Provider Error: ${data.error.message || "Unknown error"}`);
+                        console.error("API Response contained error:", data.error);
+                        throw new Error(`Provider Error: ${data.error.message || JSON.stringify(data.error)}`);
                     }
                     if (!data.choices || data.choices.length === 0) {
                         console.error("Malformed API response:", data);
-                        throw new Error("Invalid API response format");
+                        throw new Error("Invalid API response format (no choices)");
                     }
                     const message = data.choices[0].message;
                     currentMessages.push(message);
@@ -1367,7 +1375,7 @@
             }
             
             document.getElementById('ai-messages').scrollTop = document.getElementById('ai-messages').scrollHeight;
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 1200));
             
             // Safety check: Only update fxBubble if it was actually used/appended
             if (fxBubble && fxBubble.parentElement) {
