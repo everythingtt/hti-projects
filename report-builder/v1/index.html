@@ -445,22 +445,22 @@
 
         <div id="security-crawler">
             <div class="crawler-track">
-                <span style="color: var(--hti-gold); font-weight: bold; margin-right: 20px;">SECURITY STATUS:</span>
+                <span id="crawl-status-label" style="color: var(--hti-gold); font-weight: bold; margin-right: 20px;">SECURITY STATUS:</span>
                 <a href="https://www.virustotal.com/gui/url/0ec237d2f43442a51fc3c6d7b278421a1424e760b9282392dd46a8729548f19c/detection" target="_blank" class="scanner-item">
-                    <img src="virustotal.png" class="scanner-img"> Scanned with VirusTotal (Clean)
+                    <img src="virustotal.png" class="scanner-img"> <span id="crawl-vt-text">Scanned with VirusTotal (Clean)</span>
                 </a>
                 <a href="screenshot-2026-05-03-182611.png" target="_blank" class="scanner-item">
-                    <img src="malware_scanner.png" class="scanner-img"> Malware Scanner Verified
+                    <img src="malware_scanner.png" class="scanner-img"> <span id="crawl-ms-text">Malware Scanner Verified</span>
                 </a>
                 <span class="scanner-item" style="pointer-events: none;">
-                    <span style="color: #22c55e;">●</span> SSL Encryption Active
+                    <span style="color: #22c55e;">●</span> <span id="crawl-ssl-text">SSL Encryption Active</span>
                 </span>
                 <span class="scanner-item" style="pointer-events: none;">
-                    <span style="color: #22c55e;">●</span> Dr. Walaa Hesham Rule Validation Active
+                    <span style="color: #22c55e;">●</span> <span id="crawl-rule-text">Dr. Walaa Hesham Rule Validation Active</span>
                 </span>
                 <!-- Duplicate for seamless loop if track is short -->
                 <a href="https://www.virustotal.com/gui/url/0ec237d2f43442a51fc3c6d7b278421a1424e760b9282392dd46a8729548f19c/detection" target="_blank" class="scanner-item">
-                    <img src="virustotal.png" class="scanner-img"> VirusTotal Detection: 0/93
+                    <img src="virustotal.png" class="scanner-img"> <span id="crawl-vt-text-2">VirusTotal Detection: 0/93</span>
                 </a>
             </div>
         </div>
@@ -652,11 +652,27 @@
                 cm_resize: "Resize (Toggle)",
                 cm_cancel: "Cancel",
                 tut_skip: "Skip",
-                tut_next: "Next Step",
                 tut_finish: "Finish Guide",
                 footer_crafted: "Crafted with ❤️ by",
                 footer_terms: "Terms",
-                footer_privacy: "Privacy"
+                footer_privacy: "Privacy",
+                ph_subject: "Enter Subject Name...",
+                ph_name: "Youssef Ayman",
+                ph_id: "202XXXXX",
+                ph_url: "Paste link here...",
+                opt_body: "Body Content (Standard)",
+                opt_image: "Full Page Image/Figure",
+                opt_conclusion: "Conclusion",
+                opt_references: "References",
+                opt_blank: "Blank Page",
+                crawl_status: "SECURITY STATUS:",
+                crawl_vt: "Scanned with VirusTotal (Clean)",
+                crawl_ms: "Malware Scanner Verified",
+                crawl_ssl: "SSL Encryption Active",
+                crawl_rule: "Dr. Walaa Hesham Rule Validation Active",
+                msg_del_page: "Are you sure you want to delete this page?",
+                msg_tut_ask: "Would you like to start a quick tutorial guide?",
+                fig_text: "Figure: Click to Edit Subtitle"
             },
             ar: {
                 ready: "جاهز",
@@ -688,7 +704,24 @@
                 tut_finish: "إنهاء الدليل",
                 footer_crafted: "صنع بكل ❤️ بواسطة",
                 footer_terms: "الشروط",
-                footer_privacy: "الخصوصية"
+                footer_privacy: "الخصوصية",
+                ph_subject: "أدخل اسم المادة...",
+                ph_name: "يوسف أيمن",
+                ph_id: "202XXXXX",
+                ph_url: "ضع الرابط هنا...",
+                opt_body: "محتوى البحث (قياسي)",
+                opt_image: "صورة كاملة / شكل توضيحي",
+                opt_conclusion: "الخاتمة",
+                opt_references: "المراجع",
+                opt_blank: "صفحة فارغة",
+                crawl_status: "حالة الأمان:",
+                crawl_vt: "تم الفحص بواسطة VirusTotal (آمن)",
+                crawl_ms: "تم التحقق من فاحص البرمجيات الخبيثة",
+                crawl_ssl: "تشفير SSL نشط",
+                crawl_rule: "قواعد د. ولاء هشام مفعلة",
+                msg_del_page: "هل أنت متأكد من حذف هذه الصفحة؟",
+                msg_tut_ask: "هل تود البدء في جولة تعليمية سريعة؟",
+                fig_text: "شكل: اضغط لتعديل النص التوضيحي"
             }
         };
 
@@ -771,6 +804,28 @@
             document.getElementById('footer-crafted-text').innerText = t.footer_crafted;
             document.getElementById('footer-terms-link').innerText = t.footer_terms;
             document.getElementById('footer-privacy-link').innerText = t.footer_privacy;
+
+            // Update Placeholders
+            document.getElementById('in-subject').placeholder = t.ph_subject;
+            document.getElementById('in-name').placeholder = t.ph_name;
+            document.getElementById('in-id').placeholder = t.ph_id;
+            document.getElementById('img-url').placeholder = t.ph_url;
+
+            // Update Select Options
+            const select = document.getElementById('page-template');
+            select.options[0].text = t.opt_body;
+            select.options[1].text = t.opt_image;
+            select.options[2].text = t.opt_conclusion;
+            select.options[3].text = t.opt_references;
+            select.options[4].text = t.opt_blank;
+
+            // Update Security Crawler
+            document.getElementById('crawl-status-label').innerText = t.crawl_status;
+            document.getElementById('crawl-vt-text').innerText = t.crawl_vt;
+            document.getElementById('crawl-ms-text').innerText = t.crawl_ms;
+            document.getElementById('crawl-ssl-text').innerText = t.crawl_ssl;
+            document.getElementById('crawl-rule-text').innerText = t.crawl_rule;
+            document.getElementById('crawl-vt-text-2').innerText = t.crawl_vt;
 
             if (_isTutorialActive) updateTutorialStep(); // Only refresh if open
         }
@@ -939,7 +994,7 @@
                 document.getElementById('portal-overlay').style.display = 'none';
                 
                 // Optional: Ask user if they want the tutorial upon first entry
-                const welcomeMsg = _lang === 'ar' ? "هل تود البدء في جولة تعليمية سريعة؟" : "Would you like to start a quick tutorial guide?";
+                const welcomeMsg = translations[_lang].msg_tut_ask;
                 if (confirm(welcomeMsg)) {
                     startTutorial();
                 }
@@ -985,7 +1040,8 @@
         }
 
         function removePage(pageId) {
-            if(confirm("Are you sure you want to delete this page?")) {
+            const msg = translations[_lang].msg_del_page;
+            if(confirm(msg)) {
                 document.getElementById(pageId).remove();
             }
         }
@@ -1064,7 +1120,7 @@
             img.style.transition = '0.2s';
             
             const sub = document.createElement('div');
-            sub.innerText = 'Figure: Click to Edit Subtitle';
+            sub.innerText = translations[_lang].fig_text;
             sub.contentEditable = true;
             sub.style.fontSize = '12px';
             sub.style.textAlign = 'center';
