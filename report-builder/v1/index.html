@@ -741,6 +741,7 @@
                         <option value="body">Body Content (Standard)</option>
                         <option value="image">Full Page Image/Figure</option>
                         <option value="conclusion">Conclusion</option>
+                        <option value="recommendation">Recommendation</option>
                         <option value="references">References</option>
                         <option value="blank">Blank Page</option>
                     </select>
@@ -878,6 +879,7 @@
                 opt_body: "Body Content (Standard)",
                 opt_image: "Full Page Image/Figure",
                 opt_conclusion: "Conclusion",
+                opt_recommendation: "Recommendation",
                 opt_references: "References",
                 opt_blank: "Blank Page",
                 crawl_status: "SECURITY STATUS:",
@@ -938,6 +940,7 @@
                 opt_body: "محتوى البحث (قياسي)",
                 opt_image: "صورة كاملة / شكل توضيحي",
                 opt_conclusion: "الخاتمة",
+                opt_recommendation: "التوصيات",
                 opt_references: "المراجع",
                 opt_blank: "صفحة فارغة",
                 crawl_status: "حالة الأمان:",
@@ -1102,6 +1105,22 @@
                     }
                 },
                 {
+                    name: "get_report_diagnostics",
+                    description: "Get current status of the report including page count, subject, and student info.",
+                    parameters: { type: "object", properties: {} }
+                },
+                {
+                    name: "read_page_content",
+                    description: "Read the content and title of a specific page to verify work.",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            pageId: { type: "string", description: "The ID of the page (e.g., 'page-3')" }
+                        },
+                        required: ["pageId"]
+                    }
+                },
+                {
                     name: "bulk_generate_pages",
                     description: "Generate multiple pages at once with specified templates and content. Use this to quickly build a large report (e.g., up to 25 pages).",
                     parameters: {
@@ -1112,7 +1131,7 @@
                                 items: {
                                     type: "object",
                                     properties: {
-                                        template: { type: "string", enum: ["body", "image", "conclusion", "references", "blank"] },
+                                        template: { type: "string", enum: ["body", "image", "conclusion", "recommendation", "references", "blank"] },
                                         title: { type: "string" },
                                         content: { type: "string" }
                                     },
@@ -1130,17 +1149,26 @@
                     { 
                         role: "system", 
                         content: `You are "Assistant", an autonomous agentic building tool for HTI students. 
-                        Your goal is to build COMPLETE reports, often requiring 25 pages as per Dr. Walaa Hesham's rules.
+                        Your goal is to build COMPLETE reports strictly following Dr. Walaa Hesham's Academic Rules:
                         
-                        CRITICAL RULES:
+                        REPORT STRUCTURE & RULES:
+                        1. Length: 20-25 pages total.
+                        2. Cover (page-1): Must have HTI logo, Subject Name, Student Name, and ID. Bottom must say: "Under supervision of: Dr. Walaa Hesham". Language: English.
+                        3. TOC (page-2): Page numbering inside the TOC list must use Roman Numerals (I, II, III, IV...) instead of regular numbers (1, 2, 3...).
+                        4. Abstract (page-3): One single paragraph only. No bullet points. Must mention subject and results.
+                        5. Introduction (page-4): 1-2 pages long. Maximum of 2 paragraphs.
+                        6. Body Content: Copy-pasting from sources is allowed this term. Aim for high page count (20+ pages total).
+                        7. Conclusion: One single paragraph, 4-5 lines long.
+                        8. Recommendation: Must be in bullet points (not paragraphs).
+                        9. References: Must be listed Alphabetically.
+                        
+                        CRITICAL OPERATIONAL RULES:
                         1. If the user provides a URL, you MUST call 'scrape_url' first to research it.
-                        2. Use the researched info to write detailed content and add formal references.
-                        3. You can perform MULTIPLE tool calls in sequence. DO NOT stop until the user's entire request is fulfilled.
-                        4. To build a full report quickly, use 'bulk_generate_pages'. You can generate up to 25 pages in one call if requested.
-                        5. To build a report: Update Settings -> Research URL -> Bulk Generate Pages.
-                        6. Current context: ${JSON.stringify(reportContext)}.
-                        7. Page IDs: page-1 (Cover), page-2 (TOC), page-3 (Abstract), page-4 (Intro), page-5+ (New).
-                        8. Always respond in the user's language (${_lang}).` 
+                        2. Use 'bulk_generate_pages' to build the 20-25 page structure in one go.
+                        3. Always verify your work using 'get_report_diagnostics' and 'read_page_content'.
+                        4. Current context: ${JSON.stringify(reportContext)}.
+                        5. Page IDs: page-1 (Cover), page-2 (TOC), page-3 (Abstract), page-4 (Intro), page-5+ (New).
+                        6. Always respond in the user's language (${_lang}).` 
                     },
                     ..._aiHistory,
                     { role: "user", content: text }
@@ -1162,7 +1190,16 @@
                         })
                     });
                     
+                    if (!response.ok) {
+                        const errBody = await response.text();
+                        throw new Error(`API Error ${response.status}: ${errBody}`);
+                    }
+
                     const data = await response.json();
+                    if (!data.choices || data.choices.length === 0) {
+                        console.error("Malformed API response:", data);
+                        throw new Error("Invalid API response format");
+                    }
                     const message = data.choices[0].message;
                     currentMessages.push(message);
 
@@ -1266,24 +1303,49 @@
                     document.getElementById('ai-messages').appendChild(fxBubble);
                     
                     for (const pageCfg of args.pages) {
-                        document.getElementById('page-template').value = pageCfg.template;
-                        addNewPage();
-                        const newPage = document.querySelector('.pdf-page:last-child');
-                        if (newPage) {
-                            newPage.classList.add('page-update-glow');
-                            if (pageCfg.title) {
-                                const h2 = newPage.querySelector('h2');
-                                if (h2) h2.innerText = pageCfg.title;
+                        try {
+                            document.getElementById('page-template').value = pageCfg.template || 'body';
+                            addNewPage();
+                            const newPage = document.querySelector('.pdf-page:last-child');
+                            if (newPage) {
+                                newPage.classList.add('page-update-glow');
+                                if (pageCfg.title) {
+                                    const h2 = newPage.querySelector('h2');
+                                    if (h2) h2.innerText = pageCfg.title;
+                                }
+                                const editable = newPage.querySelector('[contenteditable="true"]');
+                                if (editable && pageCfg.content) {
+                                    editable.innerHTML = pageCfg.content;
+                                }
                             }
-                            const editable = newPage.querySelector('[contenteditable="true"]');
-                            if (editable && pageCfg.content) {
-                                editable.innerHTML = pageCfg.content;
-                            }
+                        } catch (pageErr) {
+                            console.error("Error generating page in bulk:", pageErr);
                         }
                         // Short delay for visual effect
                         await new Promise(r => setTimeout(r, 100));
                     }
-                    break;
+                    return { status: "success", pagesCreated: args.pages.length };
+
+                case 'get_report_diagnostics':
+                    return {
+                        subject: document.getElementById('in-subject').value,
+                        name: document.getElementById('in-name').value,
+                        id: document.getElementById('in-id').value,
+                        pageCount: document.querySelectorAll('.pdf-page').length,
+                        pages: Array.from(document.querySelectorAll('.pdf-page')).map(p => ({
+                            id: p.id,
+                            title: p.querySelector('h2')?.innerText || "Untitled"
+                        }))
+                    };
+
+                case 'read_page_content':
+                    const targetPage = document.getElementById(args.pageId);
+                    if (!targetPage) return { error: "Page not found" };
+                    return {
+                        id: args.pageId,
+                        title: targetPage.querySelector('h2')?.innerText || "Untitled",
+                        content: targetPage.querySelector('[contenteditable="true"]')?.innerHTML || ""
+                    };
 
                 case 'scrape_url':
                     appendAIMessage(`<div class="ai-thought">${t.ai_action_scrape || "Researching URL content..."}</div>`, 'assistant', statusId);
@@ -1409,8 +1471,9 @@
             select.options[0].text = t.opt_body;
             select.options[1].text = t.opt_image;
             select.options[2].text = t.opt_conclusion;
-            select.options[3].text = t.opt_references;
-            select.options[4].text = t.opt_blank;
+            select.options[3].text = t.opt_recommendation;
+            select.options[4].text = t.opt_references;
+            select.options[5].text = t.opt_blank;
 
             // Update Security Crawler
             document.getElementById('crawl-status-label').innerText = t.crawl_status;
@@ -1612,10 +1675,13 @@
                     content = `<h2 style="text-align:center;">Supporting Evidence / Figures</h2><div style="height: 200mm; border: 2px dashed #ccc; display:flex; align-items:center; justify-content:center; margin-top:20px; color:#666;">Drag and drop or upload an image here</div>`;
                     break;
                 case 'conclusion':
-                    content = `<h2>Conclusion</h2><div contenteditable="true" style="text-align: justify; line-height: 1.8; margin-top:20px;"><p>In conclusion, this report has demonstrated that...</p></div>`;
+                    content = `<h2>Conclusion</h2><div contenteditable="true" style="text-align: justify; line-height: 1.8; margin-top:20px;"><p>In conclusion, this report has demonstrated that... (One paragraph, 4-5 lines as per requirements)</p></div>`;
+                    break;
+                case 'recommendation':
+                    content = `<h2>Recommendations</h2><div contenteditable="true" style="text-align: justify; line-height: 1.8; margin-top:20px;"><ul><li>Recommendation 1</li><li>Recommendation 2</li><li>Recommendation 3</li></ul></div>`;
                     break;
                 case 'references':
-                    content = `<h2>References</h2><div contenteditable="true" style="margin-top:20px;">[1] Author Name, "Title of Paper", Publisher, Year.<br>[2] Website Name, URL, Accessed Date.</div>`;
+                    content = `<h2>References</h2><div contenteditable="true" style="margin-top:20px;"><p>(List alphabetically)</p>[A] Author Name, "Title of Paper", Publisher, Year.<br>[B] Website Name, URL, Accessed Date.</div>`;
                     break;
                 default:
                     content = `<div contenteditable="true" style="height:100%;">Click to start typing on this blank page...</div>`;
