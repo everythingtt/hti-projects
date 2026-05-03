@@ -821,14 +821,16 @@
                 // Position card relative to target
                 setTimeout(() => {
                     const rect = targetEl.getBoundingClientRect();
-                    const cardWidth = 320;
-                    let top = rect.top + (rect.height / 2) - 100;
+                    const cardWidth = card.offsetWidth || 320;
+                    const cardHeight = card.offsetHeight || 200;
+                    let top = rect.top + (rect.height / 2) - (cardHeight / 2);
                     let left = 0;
 
+                    // Horizontal Positioning
                     if (_lang === 'ar') {
                         left = rect.left - cardWidth - 30;
                         card.classList.add('tut-left');
-                        if (left < 20) { // Not enough space on left
+                        if (left < 20) { // Flip to right
                             left = rect.right + 30;
                             card.classList.remove('tut-left');
                             card.classList.add('tut-right');
@@ -836,17 +838,31 @@
                     } else {
                         left = rect.right + 30;
                         card.classList.add('tut-right');
-                        if (left + cardWidth > window.innerWidth - 20) { // Not enough space on right
+                        if (left + cardWidth > window.innerWidth - 20) { // Flip to left
                             left = rect.left - cardWidth - 30;
                             card.classList.remove('tut-right');
                             card.classList.add('tut-left');
                         }
                     }
 
-                    // Viewport bounds check
-                    if (top < 80) top = 80;
-                    if (top + 250 > window.innerHeight) top = window.innerHeight - 250;
+                    // Vertical Positioning (Step 2 fix: target is at bottom)
+                    if (top + cardHeight > window.innerHeight - 20) {
+                        top = rect.top - cardHeight - 30;
+                        card.classList.remove('tut-left', 'tut-right');
+                        card.classList.add('tut-top');
+                    } else if (top < 80) {
+                        top = rect.bottom + 30;
+                        card.classList.remove('tut-left', 'tut-right');
+                        card.classList.add('tut-bottom');
+                    }
 
+                    // Final safety bounds
+                    if (left < 10) left = 10;
+                    if (left + cardWidth > window.innerWidth - 10) left = window.innerWidth - cardWidth - 10;
+                    if (top < 10) top = 10;
+                    if (top + cardHeight > window.innerHeight - 10) top = window.innerHeight - cardHeight - 10;
+
+                    card.style.transform = 'none';
                     card.style.top = top + 'px';
                     card.style.left = left + 'px';
                 }, 100);
