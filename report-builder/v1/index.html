@@ -674,8 +674,11 @@
         </div>
         <div class="ai-input-area">
             <input type="text" id="ai-user-input" class="ai-input" placeholder="Type a message..." onkeypress="if(event.key==='Enter') sendAIMessage()">
-            <button class="ai-send" onclick="sendAIMessage()">
+            <button class="ai-send" id="ai-send-btn" onclick="sendAIMessage()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
+            <button id="ai-stop-btn" onclick="stopAI()" style="display:none; background:#ef4444; border:none; width:35px; height:35px; border-radius:50%; cursor:pointer; align-items:center; justify-content:center;">
+                <div style="width:12px; height:12px; background:white; border-radius:2px;"></div>
             </button>
         </div>
     </div>
@@ -847,6 +850,7 @@
         let _lang = 'en';
         let _isTutorialActive = false;
         let _aiApiKey = null;
+        let _isAIStopping = false;
         const _aiHistory = [];
 
         const translations = {
@@ -1044,6 +1048,10 @@
             const text = input.value.trim();
             if (!text) return;
 
+            _isAIStopping = false;
+            document.getElementById('ai-send-btn').style.display = 'none';
+            document.getElementById('ai-stop-btn').style.display = 'flex';
+
             appendAIMessage(text, 'user');
             input.value = '';
 
@@ -1189,6 +1197,11 @@
 
                 let turnLimit = 50; // Increased to 50 to ensure full report generation in one go
                 while (turnLimit > 0) {
+                    if (_isAIStopping) {
+                        document.getElementById(thinkingId)?.remove();
+                        appendAIMessage(_lang === 'ar' ? "تم إيقاف المساعد." : "AI execution stopped by user.", 'assistant');
+                        break;
+                    }
                     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
                         method: "POST",
                         headers: {
@@ -1217,21 +1230,23 @@
                     currentMessages.push(message);
 
                     if (message.tool_calls) {
-                        for (const toolCall of message.tool_calls) {
-                            const name = toolCall.function.name;
-                            const args = JSON.parse(toolCall.function.arguments);
-                            const result = await executeAITool(name, args);
-                            
-                            // Add tool result back to conversation so AI knows it succeeded
-                            currentMessages.push({
-                                role: "tool",
-                                tool_call_id: toolCall.id,
-                                name: name,
-                                content: JSON.stringify({ status: "success", detail: result || "Action completed" })
-                            });
-                        }
-                        turnLimit--;
-                    } else {
+                            for (const toolCall of message.tool_calls) {
+                                if (_isAIStopping) break;
+                                const name = toolCall.function.name;
+                                const args = JSON.parse(toolCall.function.arguments);
+                                const result = await executeAITool(name, args);
+                                
+                                // Add tool result back to conversation so AI knows it succeeded
+                                currentMessages.push({
+                                    role: "tool",
+                                    tool_call_id: toolCall.id,
+                                    name: name,
+                                    content: JSON.stringify({ status: "success", detail: result || "Action completed" })
+                                });
+                            }
+                            if (_isAIStopping) break;
+                            turnLimit--;
+                        } else {
                         // Final text response
                         document.getElementById(thinkingId)?.remove();
                         const aiText = message.content;
@@ -1244,6 +1259,9 @@
                         break;
                     }
                 }
+
+                document.getElementById('ai-send-btn').style.display = 'flex';
+                document.getElementById('ai-stop-btn').style.display = 'none';
 
                 if (turnLimit === 0) {
                     document.getElementById(thinkingId)?.remove();
@@ -1356,6 +1374,7 @@
                     const statusSpan = fxBubble.querySelector('.status-text');
                     let count = 0;
                     for (const pageCfg of args.pages) {
+                        if (_isAIStopping) break;
                         count++;
                         if (statusSpan) {
                             statusSpan.innerText = _lang === 'ar' ? 
@@ -1456,6 +1475,15 @@
             const input = document.getElementById('ai-user-input');
             input.value = text;
             input.focus();
+        }
+
+        function stopAI() {
+            _isAIStopping = true;
+            const stopBtn = document.getElementById('ai-stop-btn');
+            if (stopBtn) {
+                stopBtn.style.opacity = '0.5';
+                stopBtn.style.pointerEvents = 'none';
+            }
         }
 
         function toggleLanguage() {
