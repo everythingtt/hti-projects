@@ -209,8 +209,9 @@
 
         /* Print Media Engine - Optimized for HTI standards */
         @media print {
-            body { background: white !important; }
-            #sidebar, header, #asset-drawer, #custom-cm, .btn, #tool-status { 
+            @page { margin: 0; }
+            body { background: white !important; margin: 0 !important; padding: 0 !important; }
+            #sidebar, header, #asset-drawer, #custom-cm, .btn, #tool-status, #ai-chat-toggle, #ai-assistant-container, .page-controls { 
                 display: none !important; 
             }
             #main-container { display: block; overflow: visible; height: auto; }
@@ -227,6 +228,7 @@
                 border: none !important;
                 width: 210mm;
                 height: 297mm;
+                padding: 20mm !important;
             }
             [contenteditable]:focus { outline: none; }
         }
@@ -748,6 +750,11 @@
                     <button class="btn" id="btn-insert-page" onclick="addNewPage()" style="background:#10b981; color:white;">+ Insert Page</button>
                 </div>
 
+                <div class="input-group">
+                    <label id="lbl-add-text">Add Floating Text</label>
+                    <button class="btn" id="btn-add-text" onclick="addFloatingText()" style="background:#8b5cf6; color:white;">+ Add Text Box</button>
+                </div>
+
                 <div style="font-size: 11px; color: #64748b; margin-top: 20px;">
                     * Dr. Walaa Hesham Supervision rule applied. <br>
                     * TOC Roman numerals active. <br>
@@ -767,8 +774,10 @@
             <main id="preview-zone">
                 <!-- Page 1: Cover -->
                 <div class="pdf-page cover-page" id="page-1">
-                    <img src="hti.png" class="cover-logo">
-                    <div>
+                    <div style="position: absolute; left: 50%; top: 50mm; transform: translateX(-50%); cursor: move;">
+                        <img src="hti.png" class="cover-logo" style="width: 150px; margin-top: 0;" onmousedown="makeDraggable(this.parentElement)">
+                    </div>
+                    <div style="margin-top: 100mm;">
                         <h1 id="out-subject" style="font-size: 36px; text-transform: uppercase;">SUBJECT NAME</h1>
                         <p style="margin-top: 20px; font-size: 20px;">Prepared by: <span id="out-name">Your Name</span></p>
                         <p style="font-size: 18px;">ID: <span id="out-id">Your ID</span></p>
@@ -876,6 +885,8 @@
                 ph_name: "Youssef Ayman",
                 ph_id: "202XXXXX",
                 ph_url: "Paste link here...",
+                lbl_add_text: "Add Floating Text",
+                btn_add_text: "+ Add Text Box",
                 opt_body: "Body Content (Standard)",
                 opt_image: "Full Page Image/Figure",
                 opt_conclusion: "Conclusion",
@@ -937,6 +948,8 @@
                 ph_name: "يوسف أيمن",
                 ph_id: "202XXXXX",
                 ph_url: "ضع الرابط هنا...",
+                lbl_add_text: "إضافة نص حر",
+                btn_add_text: "+ إضافة مربع نص",
                 opt_body: "محتوى البحث (قياسي)",
                 opt_image: "صورة كاملة / شكل توضيحي",
                 opt_conclusion: "الخاتمة",
@@ -1183,7 +1196,7 @@
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({
-                            model: "google/gemini-3.1-pro-preview-customtools",
+                            model: "tencent/hy3-preview:free",
                             messages: currentMessages,
                             tools: tools.map(t => ({ type: "function", function: t })),
                             tool_choice: "auto"
@@ -1256,32 +1269,62 @@
             switch(name) {
                 case 'update_report_settings':
                     actionText = t.ai_action_update || "Updating settings...";
-                    if (args.subject) actionText += ` (${args.subject})`;
-                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span>${actionText}</span>`;
+                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span class="status-text">${actionText}</span>`;
                     document.getElementById('ai-messages').appendChild(fxBubble);
                     
-                    if (args.subject) { document.getElementById('in-subject').value = args.subject; syncFields(); }
-                    if (args.name) { document.getElementById('in-name').value = args.name; syncFields(); }
-                    if (args.studentId) { document.getElementById('in-id').value = args.studentId; syncFields(); }
+                    const updateStatus = fxBubble.querySelector('.status-text');
+                    let updateDetail = [];
+                    if (args.subject) { 
+                        document.getElementById('in-subject').value = args.subject; 
+                        updateDetail.push(_lang === 'ar' ? 'الموضوع' : 'Subject');
+                        syncFields(); 
+                    }
+                    if (args.name) { 
+                        document.getElementById('in-name').value = args.name; 
+                        updateDetail.push(_lang === 'ar' ? 'الاسم' : 'Name');
+                        syncFields(); 
+                    }
+                    if (args.studentId) { 
+                        document.getElementById('in-id').value = args.studentId; 
+                        updateDetail.push(_lang === 'ar' ? 'الكود' : 'ID');
+                        syncFields(); 
+                    }
+                    if (updateStatus && updateDetail.length > 0) {
+                        updateStatus.innerText = (_lang === 'ar' ? 'تم تحديث: ' : 'Updated: ') + updateDetail.join(', ');
+                    }
                     break;
                     
                 case 'insert_new_page':
-                    actionText = (t.ai_action_insert || "Inserting page...") + ` (${args.template})`;
-                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span>${actionText}</span>`;
+                    actionText = t.ai_action_insert || "Inserting page...";
+                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span class="status-text">${actionText}</span>`;
                     document.getElementById('ai-messages').appendChild(fxBubble);
                     
+                    const insertStatus = fxBubble.querySelector('.status-text');
+                    if (insertStatus) {
+                        insertStatus.innerText = (_lang === 'ar' ? `جاري إدراج صفحة: ${args.template}` : `Inserting ${args.template} page...`);
+                    }
+
                     document.getElementById('page-template').value = args.template;
                     addNewPage();
                     const newPage = document.querySelector('.pdf-page:last-child');
-                    if (newPage) newPage.classList.add('page-update-glow');
+                    if (newPage) {
+                        newPage.classList.add('page-update-glow');
+                        if (insertStatus) {
+                            insertStatus.innerText = (_lang === 'ar' ? `تم إدراج الصفحة بنجاح` : `Page inserted successfully`);
+                        }
+                    }
                     break;
 
                 case 'set_page_content':
-                    actionText = (t.ai_action_content || "Writing content...") + ` [${args.pageId}]`;
-                    if (args.title) actionText += `: ${args.title}`;
-                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span>${actionText}</span>`;
+                    actionText = t.ai_action_content || "Writing content...";
+                    fxBubble.innerHTML = `<div class="ai-pulse"></div><span class="status-text">${actionText}</span>`;
                     document.getElementById('ai-messages').appendChild(fxBubble);
                     
+                    const contentStatus = fxBubble.querySelector('.status-text');
+                    if (contentStatus) {
+                        contentStatus.innerText = (_lang === 'ar' ? `جاري تحديث محتوى ${args.pageId}...` : `Updating content of ${args.pageId}...`);
+                    }
+
                     const page = document.getElementById(args.pageId);
                     if (page) {
                         page.classList.add('page-update-glow');
@@ -1293,8 +1336,14 @@
                         }
                         const editable = page.querySelector('[contenteditable="true"]');
                         if (editable) {
-                            // Typing effect simulation
                             editable.innerHTML = args.content;
+                        }
+                        if (contentStatus) {
+                            contentStatus.innerText = (_lang === 'ar' ? `تم تحديث المحتوى بنجاح` : `Content updated successfully`);
+                        }
+                    } else {
+                        if (contentStatus) {
+                            contentStatus.innerText = (_lang === 'ar' ? `خطأ: لم يتم العثور على الصفحة` : `Error: Page not found`);
                         }
                     }
                     break;
@@ -1365,20 +1414,16 @@
                     };
 
                 case 'scrape_url':
-                    const researchMsgId = 'scrape-' + Date.now();
-                    actionText = (t.ai_action_scrape || "Researching URL content...") + ` (${args.url.substring(0, 30)}...)`;
-                    appendAIMessage(`<div class="ai-thought">${actionText}</div>`, 'assistant', researchMsgId);
+                    appendAIMessage(`<div class="ai-thought">${t.ai_action_scrape || "Researching URL content..."}</div>`, 'assistant', statusId);
                     try {
                         const scrapeRes = await fetch(`https://r.jina.ai/${args.url}`);
                         const markdown = await scrapeRes.text();
                         // Add to memory context
                         _aiHistory.push({ role: "system", content: `Research results for ${args.url}: ${markdown.substring(0, 5000)}` });
-                        document.getElementById(researchMsgId).innerHTML = _lang === 'ar' ? `تم البحث في الرابط بنجاح: ${args.url.substring(0, 30)}...` : `Successfully researched URL: ${args.url.substring(0, 30)}...`;
-                        return { status: "success", url: args.url, contextLength: markdown.length };
+                        appendAIMessage(_lang === 'ar' ? `تم البحث في الرابط بنجاح. سأستخدم هذه المعلومات في التقرير.` : `Successfully researched URL. I will use this info in the report.`, 'assistant');
                     } catch (e) {
                         console.error("Scrape failed", e);
-                        document.getElementById(researchMsgId).innerHTML = _lang === 'ar' ? "فشل البحث في الرابط." : "Failed to research URL.";
-                        return { status: "error", message: e.message };
+                        appendAIMessage(_lang === 'ar' ? "فشل البحث في الرابط. قد يكون الموقع محميأً." : "Failed to research URL. The site might be protected.", 'assistant');
                     }
                     break;
             }
@@ -1428,6 +1473,8 @@
             document.getElementById('lbl-img-url').innerText = t.img_url;
             document.getElementById('lbl-local-up').innerText = t.local_up;
             document.getElementById('lbl-add-page').innerText = t.add_page;
+            document.getElementById('lbl-add-text').innerText = t.lbl_add_text;
+            document.getElementById('btn-add-text').innerText = t.btn_add_text;
             
             document.getElementById('btn-attach-url').innerText = t.insert_btn;
             document.getElementById('btn-insert-page').innerText = t.insert_btn;
@@ -1907,6 +1954,35 @@
                     reader.readAsDataURL(files[0]);
                 }
             };
+        }
+
+        function addFloatingText() {
+            const activePage = document.querySelector('.pdf-page:hover') || document.querySelector('.pdf-page');
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '50mm';
+            container.style.top = '100mm';
+            container.style.minWidth = '100px';
+            container.style.minHeight = '30px';
+            container.style.cursor = 'move';
+            container.style.padding = '5px';
+            container.style.border = '1px dashed #ccc';
+            
+            const text = document.createElement('div');
+            text.contentEditable = true;
+            text.innerText = 'New Text Box - Drag me';
+            text.style.outline = 'none';
+            text.style.fontSize = '16px';
+            text.style.color = '#000';
+
+            container.appendChild(text);
+            activePage.appendChild(container);
+            
+            makeDraggable(container);
+            
+            // Focus and select all text
+            text.focus();
+            document.execCommand('selectAll', false, null);
         }
     </script>
 </body>
