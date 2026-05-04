@@ -106,7 +106,27 @@
             transform-origin: top center;
             overflow: hidden; /* Prevent text from going off-page */
             word-wrap: break-word; /* Force long words to break */
+            font-size: 12pt; /* Default font size as per PDF tips */
+            text-align: justify; /* Justify text as per PDF tips */
         }
+
+        .pdf-page h2 {
+            font-size: 16pt; /* Headlines font size as per PDF tips */
+            margin-bottom: 20px;
+        }
+
+        /* Table Styles for Contribution */
+        .contribution-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .contribution-table th, .contribution-table td {
+            border: 1px solid #000;
+            padding: 10px;
+            text-align: center;
+        }
+        .contribution-table th { background: #f2f2f2; }
 
         /* Specific Page Formatting */
         .cover-page { display: flex; flex-direction: column; align-items: center; justify-content: space-between; text-align: center; }
@@ -746,6 +766,7 @@
                     <label id="lbl-add-page">Add New Page</label>
                     <select id="page-template" style="margin-bottom: 10px;">
                         <option value="body">Body Content (Standard)</option>
+                        <option value="contribution">Table of Contribution</option>
                         <option value="image">Full Page Image/Figure</option>
                         <option value="conclusion">Conclusion</option>
                         <option value="recommendation">Recommendation</option>
@@ -898,6 +919,7 @@
                 lbl_add_text: "Add Floating Text",
                 btn_add_text: "+ Add Text Box",
                 opt_body: "Body Content (Standard)",
+                opt_contribution: "Table of Contribution",
                 opt_image: "Full Page Image/Figure",
                 opt_conclusion: "Conclusion",
                 opt_recommendation: "Recommendation",
@@ -961,6 +983,7 @@
                 lbl_add_text: "إضافة نص حر",
                 btn_add_text: "+ إضافة مربع نص",
                 opt_body: "محتوى البحث (قياسي)",
+                opt_contribution: "جدول المساهمات",
                 opt_image: "صورة كاملة / شكل توضيحي",
                 opt_conclusion: "الخاتمة",
                 opt_recommendation: "التوصيات",
@@ -1156,7 +1179,7 @@
                                 items: {
                                     type: "object",
                                     properties: {
-                                        template: { type: "string", enum: ["body", "image", "conclusion", "recommendation", "references", "blank"] },
+                                        template: { type: "string", enum: ["body", "contribution", "image", "conclusion", "recommendation", "references", "blank"] },
                                         title: { type: "string" },
                                         content: { type: "string" }
                                     },
@@ -1175,15 +1198,16 @@
                         role: "system", 
                         content: `You are "Assistant", an autonomous agent for HTI students.
                         Rules:
-                        - Length: 20-25 pages.
-                        - Cover (page-1): HTI Logo, Subject, Name, ID. Bottom: "Under supervision of: Dr. Walaa Hesham".
-                        - TOC (page-2): Use Roman Numerals (I, II, III...).
-                        - Abstract (page-3): One paragraph, no bullets.
-                        - Intro (page-4): 1-2 pages, max 2 paragraphs.
-                        - Body: Copy-paste allowed. Aim for 20+ pages.
+                        - Length: 20-25 pages. Font: 12pt (14/16 for titles). Justify text.
+                        - Cover (page-1): No page number. HTI Logo, Subject, Name, ID. Bottom: "Under supervision of: Dr. Walaa Hesham".
+                        - Table of Contribution (page-2): Latin/Roman Numeral.
+                        - TOC (page-3): Latin/Roman Numeral (I, II, III...).
+                        - Abstract (page-4): 150-250 words. One paragraph, no bullets. Mention objectives, results, conclusion.
+                        - Intro: 1-2 pages, 3-5 paragraphs.
+                        - Body: Copy-paste allowed. Use photos.
                         - Conclusion: One paragraph, 4-5 lines.
                         - Recommendation: Bullet points only.
-                        - References: Alphabetical.
+                        - References: Alphabetical, APA style, dated last 5 years.
                         
                         Ops:
                         - Research URLs with 'scrape_url' first.
@@ -1566,11 +1590,12 @@
             // Update Select Options
             const select = document.getElementById('page-template');
             select.options[0].text = t.opt_body;
-            select.options[1].text = t.opt_image;
-            select.options[2].text = t.opt_conclusion;
-            select.options[3].text = t.opt_recommendation;
-            select.options[4].text = t.opt_references;
-            select.options[5].text = t.opt_blank;
+            select.options[1].text = t.opt_contribution;
+            select.options[2].text = t.opt_image;
+            select.options[3].text = t.opt_conclusion;
+            select.options[4].text = t.opt_recommendation;
+            select.options[5].text = t.opt_references;
+            select.options[6].text = t.opt_blank;
 
             // Update Security Crawler
             document.getElementById('crawl-status-label').innerText = t.crawl_status;
@@ -1767,6 +1792,22 @@
             switch(templateType) {
                 case 'body':
                     content = `<h2>Body Section Title</h2><div contenteditable="true" style="text-align: justify; line-height: 1.8; margin-top:20px;"><p>Start writing your body content here. You can add multiple paragraphs, lists, or tables to fulfill the 20-25 page requirement.</p></div>`;
+                    break;
+                case 'contribution':
+                    content = `<h2>Table of Contribution</h2>
+                        <table class="contribution-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>ID</th>
+                                    <th>Task</th>
+                                </tr>
+                            </thead>
+                            <tbody contenteditable="true">
+                                <tr><td>Student Name 1</td><td>202XXXXX</td><td>Researching...</td></tr>
+                                <tr><td>Student Name 2</td><td>202XXXXX</td><td>Writing...</td></tr>
+                            </tbody>
+                        </table>`;
                     break;
                 case 'image':
                     content = `<h2 style="text-align:center;">Supporting Evidence / Figures</h2><div style="height: 200mm; border: 2px dashed #ccc; display:flex; align-items:center; justify-content:center; margin-top:20px; color:#666;">Drag and drop or upload an image here</div>`;
