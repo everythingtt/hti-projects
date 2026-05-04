@@ -781,6 +781,16 @@
                     <button class="btn" id="btn-add-text" onclick="addFloatingText()" style="background:#8b5cf6; color:white;">+ Add Text Box</button>
                 </div>
 
+                <hr style="opacity:0.2; margin: 20px 0;">
+
+                <div class="input-group">
+                    <label id="lbl-project">Project Management</label>
+                    <button class="btn" id="btn-save-project" onclick="exportProject()" style="background:#334155; color:white; border: 1px solid var(--hti-gold);">Save Project (.hti)</button>
+                    <button class="btn" id="btn-load-project" onclick="document.getElementById('project-file').click()" style="background:#334155; color:white; border: 1px solid var(--hti-gold);">Load Project File</button>
+                    <input type="file" id="project-file" accept=".hti,.json" style="display:none" onchange="importProject(event)">
+                    <div style="font-size: 10px; color: #94a3b8; margin-top: 5px;">* Use .hti files to share editable reports with others.</div>
+                </div>
+
                 <div style="font-size: 11px; color: #64748b; margin-top: 20px;">
                     * Dr. Walaa Hesham Supervision rule applied. <br>
                     * TOC Roman numerals active. <br>
@@ -918,6 +928,10 @@
                 ph_url: "Paste link here...",
                 lbl_add_text: "Add Floating Text",
                 btn_add_text: "+ Add Text Box",
+                lbl_project: "Project Management",
+                btn_save: "Save Project (.hti)",
+                btn_load: "Load Project File",
+                project_hint: "* Use .hti files to share editable reports with others.",
                 opt_body: "Body Content (Standard)",
                 opt_contribution: "Table of Contribution",
                 opt_image: "Full Page Image/Figure",
@@ -982,6 +996,10 @@
                 ph_url: "ضع الرابط هنا...",
                 lbl_add_text: "إضافة نص حر",
                 btn_add_text: "+ إضافة مربع نص",
+                lbl_project: "إدارة المشروع",
+                btn_save: "حفظ المشروع (.hti)",
+                btn_load: "تحميل ملف مشروع",
+                project_hint: "* استخدم ملفات .hti لمشاركة التقارير القابلة للتعديل.",
                 opt_body: "محتوى البحث (قياسي)",
                 opt_contribution: "جدول المساهمات",
                 opt_image: "صورة كاملة / شكل توضيحي",
@@ -1528,6 +1546,10 @@
             document.getElementById('lbl-add-page').innerText = t.add_page;
             document.getElementById('lbl-add-text').innerText = t.lbl_add_text;
             document.getElementById('btn-add-text').innerText = t.btn_add_text;
+            document.getElementById('lbl-project').innerText = t.lbl_project;
+            document.getElementById('btn-save-project').innerText = t.btn_save;
+            document.getElementById('btn-load-project').innerText = t.btn_load;
+            document.querySelector('#lbl-project + button + button + input + div').innerText = t.project_hint;
             
             document.getElementById('btn-attach-url').innerText = t.insert_btn;
             document.getElementById('btn-insert-page').innerText = t.insert_btn;
@@ -2072,6 +2094,95 @@
             // Focus and select all text
             text.focus();
             document.execCommand('selectAll', false, null);
+        }
+
+        /**
+         * Project Persistence Engine
+         */
+        function exportProject() {
+            const projectData = {
+                version: "1.0",
+                timestamp: Date.now(),
+                settings: {
+                    subject: document.getElementById('in-subject').value,
+                    name: document.getElementById('in-name').value,
+                    studentId: document.getElementById('in-id').value,
+                    lang: _lang
+                },
+                pages: Array.from(document.querySelectorAll('.pdf-page')).map(page => ({
+                    id: page.id,
+                    html: page.innerHTML,
+                    styles: {
+                        backgroundImage: page.style.backgroundImage,
+                        backgroundSize: page.style.backgroundSize,
+                        backgroundPosition: page.style.backgroundPosition
+                    }
+                }))
+            };
+
+            const blob = new Blob([JSON.stringify(projectData, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `HTI_Project_${projectData.settings.subject || 'Untitled'}.hti`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importProject(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const projectData = JSON.parse(e.target.result);
+                    if (projectData.version !== "1.0") throw new Error("Unsupported version");
+
+                    // Load Settings
+                    document.getElementById('in-subject').value = projectData.settings.subject || "";
+                    document.getElementById('in-name').value = projectData.settings.name || "";
+                    document.getElementById('in-id').value = projectData.settings.studentId || "";
+                    if (projectData.settings.lang !== _lang) toggleLanguage();
+                    syncFields();
+
+                    // Load Pages
+                    const previewZone = document.getElementById('preview-zone');
+                    previewZone.innerHTML = ""; // Clear current
+                    
+                    projectData.pages.forEach(pageData => {
+                        const page = document.createElement('div');
+                        page.className = 'pdf-page';
+                        if (pageData.html.includes('cover-page')) page.classList.add('cover-page');
+                        page.id = pageData.id;
+                        page.innerHTML = pageData.html;
+                        
+                        // Restore Styles
+                        if (pageData.styles) {
+                            page.style.backgroundImage = pageData.styles.backgroundImage;
+                            page.style.backgroundSize = pageData.styles.backgroundSize;
+                            page.style.backgroundPosition = pageData.styles.backgroundPosition;
+                        }
+
+                        previewZone.appendChild(page);
+                        
+                        // Re-enable dragging for any draggable elements
+                        page.querySelectorAll('[onmousedown*="makeDraggable"]').forEach(el => {
+                            // Elements with inline onmousedown will work automatically, 
+                            // but we might need to re-initialize containers
+                        });
+                    });
+
+                    _pageCounter = projectData.pages.length;
+                    alert(_lang === 'ar' ? "تم تحميل المشروع بنجاح!" : "Project loaded successfully!");
+                    
+                } catch (err) {
+                    console.error("Import failed", err);
+                    alert(_lang === 'ar' ? "فشل تحميل الملف. تأكد أنه ملف .hti صحيح." : "Failed to load file. Ensure it is a valid .hti file.");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input
         }
     </script>
 </body>
