@@ -56,6 +56,8 @@
             align-items: center;
             border-bottom: 1px solid #334155;
             z-index: 100;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .brand-logo { height: 45px; cursor: pointer; transition: transform 0.3s; }
@@ -104,7 +106,7 @@
             position: relative;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             transform-origin: top center;
-            overflow: hidden; /* Prevent text from going off-page */
+            /* overflow: hidden removed to prevent cutting off dragged elements */
             word-wrap: break-word; /* Force long words to break */
             font-size: 12pt; /* Default font size as per PDF tips */
             text-align: justify; /* Justify text as per PDF tips */
@@ -633,29 +635,38 @@
               background: #1e293b;
               border: 1px solid var(--hti-gold);
               border-radius: 20px;
-              width: 450px;
-              max-width: 90vw;
-              padding: 40px;
+              width: 480px;
+              max-width: 95vw;
+              max-height: 90vh;
+              overflow-y: auto;
+              padding: 25px;
               text-align: center;
               box-shadow: 0 25px 50px rgba(0,0,0,0.5);
               animation: slideIn 0.5s ease;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              z-index: 20001;
           }
-          .vodafone-logo { height: 40px; margin-bottom: 20px; }
-          .price-tag { font-size: 32px; font-weight: 800; color: #fff; margin: 20px 0; }
-          .premium-features { text-align: left; margin: 25px 0; font-size: 14px; color: #94a3b8; }
-          .premium-features li { margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-          .premium-features li::before { content: '✦'; color: var(--hti-gold); }
+          .premium-card h2 { font-size: 22px; margin-bottom: 5px; color: #fff; }
+          .premium-card p { font-size: 13px; margin-bottom: 10px; color: #94a3b8; }
+          .vodafone-logo { height: 30px; margin-bottom: 10px; }
+          .price-tag { font-size: 32px; font-weight: 800; color: #fff; margin: 10px 0; }
+          .premium-features { text-align: left; margin: 15px 0; font-size: 13px; color: #cbd5e1; width: 100%; list-style: none; padding: 0; }
+          .premium-features li { margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+          .premium-features li::before { content: '✦'; color: var(--hti-gold); font-size: 10px; }
           .activation-input { 
               background: #0f172a; 
               border: 2px solid #334155; 
               border-radius: 10px; 
-              padding: 15px; 
+              padding: 12px; 
               width: 100%; 
               color: white; 
               font-family: monospace; 
               letter-spacing: 2px; 
               text-align: center;
-              margin-bottom: 15px;
+              margin-bottom: 10px;
+              font-size: 16px;
           }
           .activation-input:focus { border-color: var(--hti-gold); outline: none; }
           .status-badge {
@@ -1083,50 +1094,10 @@
                 btn_activate: "Activate Premium",
                 badge_free: "Free",
                 badge_premium: "Premium",
-                msg_premium_req: "This feature requires Premium Activation."
-            },
-            ar: {
-                ready: "جاهز",
-                subject: "موضوع التقرير",
-                name: "اسم الطالب",
-                id: "كود الطالب",
-                img_url: "صورة عبر رابط",
-                local_up: "تحميل محلي",
-                add_page: "إضافة صفحة جديدة",
-                insert_btn: "+ إدراج صفحة",
-                enter_btn: "دخول مساحة العمل",
-                help: "مساعدة",
-                print: "طباعة",
-                export: "تصدير PDF",
-                verifying: "جاري التحقق...",
-                verified: "تم التحقق",
-                lang_toggle: "English",
-                portal_title: "منشئ تقارير HTI",
-                portal_secure: "بيئة أكاديمية آمنة",
-                step_cf: "حماية كلود فلير: جاري التحقق من الاتصال...",
-                step_br: "التحقق من المتصفح: جاري فحص البيئة...",
-                step_fn: "اللمسات الأخيرة: تأمين مساحة العمل...",
-                cm_bg: "تعيين كخلفية",
-                cm_del: "حذف العنصر",
-                cm_resize: "تغيير الحجم",
-                cm_cancel: "إلغاء",
-                tut_skip: "تخطي",
-                tut_next: "الخطوة التالية",
-                tut_finish: "إنهاء الدليل",
-                footer_crafted: "صنع بكل ❤️ بواسطة",
-                footer_terms: "الشروط",
-                footer_privacy: "الخصوصية",
-                ph_subject: "أدخل اسم المادة...",
-                ph_name: "يوسف أيمن",
-                ph_id: "202XXXXX",
-                ph_url: "ضع الرابط هنا...",
-                lbl_add_text: "إضافة نص حر",
-                btn_add_text: "+ إضافة مربع نص",
-                lbl_project: "إدارة المشروع",
-                btn_save: "حفظ المشروع (.hti)",
-                btn_load: "تحميل ملف مشروع",
-                project_hint: "* استخدم ملفات .hti لمشاركة التقارير القابلة للتعديل.",
-                opt_body: "محتوى البحث (قياسي)",
+                badge_trial: "Trial",
+                msg_premium_req: "Trial limit reached. Activation required (75 EGP Credit / 50 EGP Cash).",
+                msg_trial_rem: "Trial attempts remaining: ",
+                opt_body: "Body Content (Standard)",
                 opt_contribution: "جدول المساهمات",
                 opt_image: "صورة كاملة / شكل توضيحي",
                 opt_conclusion: "الخاتمة",
@@ -1164,7 +1135,9 @@
                 btn_activate: "تفعيل الآن",
                 badge_free: "مجاني",
                 badge_premium: "مميز",
-                msg_premium_req: "هذه الميزة تتطلب تفعيل النسخة المميزة."
+                badge_trial: "تجريبي",
+                msg_premium_req: "انتهت المحاولات التجريبية. التفعيل مطلوب (75 جنيه رصيد / 50 جنيه كاش).",
+                msg_trial_rem: "المحاولات المتبقية: "
             }
         };
 
@@ -1716,11 +1689,11 @@
                 const remTokens = _trialLimits.tokens - _trialStats.tokens;
                 
                 if (remExports > 0 || remTokens > 0) {
-                    badge.innerText = translations[_lang].badge_trial;
+                    badge.innerText = translations[_lang].badge_trial || (_lang === 'ar' ? 'تجريبي' : 'Trial');
                     badge.className = "status-badge badge-free"; // Use free color but trial text
-                    badge.title = translations[_lang].msg_trial_rem + `Exp:${remExports}, AI:${remTokens}`;
+                    badge.title = (translations[_lang].msg_trial_rem || (_lang === 'ar' ? 'المحاولات المتبقية: ' : 'Trial remaining: ')) + `Exp:${remExports}, AI:${remTokens}`;
                 } else {
-                    badge.innerText = translations[_lang].badge_free;
+                    badge.innerText = translations[_lang].badge_free || (_lang === 'ar' ? 'مجاني' : 'Free');
                     badge.className = "status-badge badge-free";
                 }
                 badge.onclick = openPremium;
