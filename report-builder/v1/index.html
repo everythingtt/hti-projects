@@ -617,6 +617,57 @@
               from { opacity: 0; transform: translateY(10px); }
               to { opacity: 1; transform: translateY(0); }
           }
+
+          /* Premium Activation UI */
+          #premium-overlay {
+              position: fixed;
+              top: 0; left: 0; width: 100%; height: 100%;
+              background: rgba(2, 6, 23, 0.95);
+              z-index: 20000;
+              display: none;
+              align-items: center;
+              justify-content: center;
+              backdrop-filter: blur(10px);
+          }
+          .premium-card {
+              background: #1e293b;
+              border: 1px solid var(--hti-gold);
+              border-radius: 20px;
+              width: 450px;
+              max-width: 90vw;
+              padding: 40px;
+              text-align: center;
+              box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+              animation: slideIn 0.5s ease;
+          }
+          .vodafone-logo { height: 40px; margin-bottom: 20px; }
+          .price-tag { font-size: 32px; font-weight: 800; color: #fff; margin: 20px 0; }
+          .premium-features { text-align: left; margin: 25px 0; font-size: 14px; color: #94a3b8; }
+          .premium-features li { margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+          .premium-features li::before { content: '✦'; color: var(--hti-gold); }
+          .activation-input { 
+              background: #0f172a; 
+              border: 2px solid #334155; 
+              border-radius: 10px; 
+              padding: 15px; 
+              width: 100%; 
+              color: white; 
+              font-family: monospace; 
+              letter-spacing: 2px; 
+              text-align: center;
+              margin-bottom: 15px;
+          }
+          .activation-input:focus { border-color: var(--hti-gold); outline: none; }
+          .status-badge {
+              padding: 4px 10px;
+              border-radius: 5px;
+              font-size: 10px;
+              font-weight: 800;
+              text-transform: uppercase;
+              margin-left: 10px;
+          }
+          .badge-free { background: #475569; color: #fff; }
+          .badge-premium { background: var(--hti-gold); color: #000; }
        </style>
 </head>
 <body oncontextmenu="return _handleContextMenu(event)">
@@ -708,7 +759,15 @@
     <div id="app-shell">
         <header>
             <img src="hti.png" class="brand-logo" alt="HTI Logo">
-            <div id="tool-status">HTI Builder v1.0 | <span style="color:var(--hti-gold)">Ready</span> <span style="margin-left:15px; font-size:11px; opacity:0.6; font-weight:normal;">Developed by Youssef Ayman</span></div>
+            <div id="tool-status" style="display: flex; align-items: center; gap: 10px;">
+                HTI Builder 
+                <a href="changelog.html" target="_blank" style="text-decoration: none;">
+                    <span style="background: var(--hti-gold); color: #000; padding: 2px 8px; border-radius: 10px; font-weight: 800; font-size: 10px;">v1.1.0</span>
+                </a>
+                <span id="premium-badge" class="status-badge badge-free" onclick="openPremium()">Free</span>
+                | <span id="status-text">Ready</span> 
+                <span style="margin-left:5px; font-size:11px; opacity:0.6; font-weight:normal;">Developed by Youssef Ayman</span>
+            </div>
             <div style="display: flex; gap: 10px;">
                 <button onclick="toggleLanguage()" class="btn" id="lang-toggle-btn" style="width:auto; padding: 5px 15px; background: #1e40af; color: white;">العربية</button>
                 <button onclick="startTutorial()" class="btn" id="btn-help" style="width:auto; padding: 5px 15px; background: transparent; border: 1px solid #475569; color: #94a3b8;">Help</button>
@@ -801,6 +860,7 @@
                     <span id="footer-crafted-text">Crafted with ❤️ by</span> <br>
                     <span style="color: var(--hti-gold); font-weight: 600;">Youssef Ayman</span>
                     <div style="margin-top: 10px;">
+                        <a href="changelog.html" target="_blank" style="color: #64748b; text-decoration: none; margin-right: 10px;">Changelog</a>
                         <a href="terms.html" id="footer-terms-link" target="_blank" style="color: #64748b; text-decoration: none; margin-right: 10px;">Terms</a>
                         <a href="privacy.html" id="footer-privacy-link" target="_blank" style="color: #64748b; text-decoration: none;">Privacy</a>
                     </div>
@@ -874,6 +934,37 @@
         <div class="cm-item" onclick="closeCM()">Cancel</div>
     </div>
 
+    <!-- Premium Activation Overlay -->
+    <div id="premium-overlay">
+        <div class="premium-card">
+            <img src="https://cdn.worldvectorlogo.com/logos/vodafone-icon.svg" class="vodafone-logo" alt="Vodafone">
+            <h2 id="prem-title">Premium Activation</h2>
+            <p style="color: #94a3b8; font-size: 14px;" id="prem-subtitle">Unlock unlimited report building and PDF exports.</p>
+            
+            <div class="price-tag">75 EGP</div>
+            
+            <ul class="premium-features">
+                <li id="feat-1">Unlimited PDF Exports (High Quality)</li>
+                <li id="feat-2">Full 25-Page AI Report Builder</li>
+                <li id="feat-3">Project Persistence (.hti files)</li>
+                <li id="feat-4">Academic Rule Validation</li>
+            </ul>
+
+            <div style="background: rgba(197, 160, 89, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 13px;">
+                <p id="prem-instr">Transfer <strong>75 EGP</strong> credit to: <br><strong style="font-size: 18px; color: var(--hti-gold);">010XXXXXXXX</strong></p>
+                <div style="margin: 10px 0; border-top: 1px solid rgba(197, 160, 89, 0.2); padding-top: 10px;">
+                    <p id="prem-cash-instr">Or pay <strong>50 EGP Cash</strong> in-person to:</p>
+                    <strong style="font-size: 16px; color: var(--hti-gold);">Youssef Ayman</strong>
+                </div>
+                <p style="font-size: 11px; margin-top: 5px; opacity: 0.8;" id="prem-note">* Send screenshot of transfer or meet Youssef for code.</p>
+            </div>
+
+            <input type="text" id="activation-code" class="activation-input" placeholder="ENTER ACTIVATION CODE">
+            <button class="btn" onclick="validateActivation()" id="btn-activate">Activate Premium</button>
+            <button class="btn" onclick="closePremium()" style="background:transparent; color:#94a3b8; margin-top: 5px;">Close</button>
+        </div>
+    </div>
+
     <script>
         /**
          * HTI Report Builder Engine
@@ -888,6 +979,7 @@
         let _isTutorialActive = false;
         let _aiApiKey = null;
         let _isAIStopping = false;
+        let _isPremium = localStorage.getItem('hti_premium') === 'true';
         const _aiHistory = [];
 
         const translations = {
@@ -957,7 +1049,20 @@
                 ai_action_scrape: "Researching URL content...",
                 ai_sug_1: "Build a full 25-page report about AI",
                 ai_sug_2: "Summarize this URL...",
-                ai_sug_3: "Add reference from link"
+                ai_sug_3: "Add reference from link",
+                prem_title: "Premium Activation",
+                prem_sub: "Unlock unlimited report building and PDF exports.",
+                feat_1: "Unlimited PDF Exports (High Quality)",
+                feat_2: "Full 25-Page AI Report Builder",
+                feat_3: "Project Persistence (.hti files)",
+                feat_4: "Academic Rule Validation",
+                prem_instr: "Transfer <strong>75 EGP</strong> credit to:",
+                prem_cash_instr: "Or pay <strong>50 EGP Cash</strong> in-person to:",
+                prem_note: "* Send screenshot of transfer or meet Youssef for code.",
+                btn_activate: "Activate Premium",
+                badge_free: "Free",
+                badge_premium: "Premium",
+                msg_premium_req: "This feature requires Premium Activation."
             },
             ar: {
                 ready: "جاهز",
@@ -1025,7 +1130,20 @@
                 ai_action_scrape: "جاري البحث في محتوى الرابط...",
                 ai_sug_1: "أنشئ تقريراً كاملاً من 25 صفحة عن الذكاء الاصطناعي",
                 ai_sug_2: "لخص هذا الرابط...",
-                ai_sug_3: "أضف مرجعاً من رابط"
+                ai_sug_3: "أضف مرجعاً من رابط",
+                prem_title: "تفعيل النسخة المميزة",
+                prem_sub: "افتح ميزات بناء التقارير وتصدير PDF غير المحدودة.",
+                feat_1: "تصدير PDF غير محدود (جودة عالية)",
+                feat_2: "منشئ تقارير ذكي (25 صفحة كاملة)",
+                feat_3: "حفظ ومشاركة المشاريع (.hti)",
+                feat_4: "التحقق التلقائي من القواعد الأكاديمية",
+                prem_instr: "حول <strong>75 جنيه</strong> رصيد إلى رقم:",
+                prem_cash_instr: "أو ادفع <strong>50 جنيه كاش</strong> مقابلة شخصية لـ:",
+                prem_note: "* أرسل لقطة شاشة للتحويل أو قابل يوسف للحصول على الكود.",
+                btn_activate: "تفعيل الآن",
+                badge_free: "مجاني",
+                badge_premium: "مميز",
+                msg_premium_req: "هذه الميزة تتطلب تفعيل النسخة المميزة."
             }
         };
 
@@ -1091,6 +1209,11 @@
         }
 
         async function sendAIMessage() {
+            if (!_isPremium && document.querySelectorAll('.pdf-page').length > 5) {
+                alert(translations[_lang].msg_premium_req);
+                openPremium();
+                return;
+            }
             const input = document.getElementById('ai-user-input');
             const text = input.value.trim();
             if (!text) return;
@@ -1529,6 +1652,41 @@
             }
         }
 
+        function openPremium() {
+            document.getElementById('premium-overlay').style.display = 'flex';
+        }
+
+        function closePremium() {
+            document.getElementById('premium-overlay').style.display = 'none';
+        }
+
+        function validateActivation() {
+            const code = document.getElementById('activation-code').value.trim();
+            // Secure hash-based check would be better, but using simple code for now
+            if (code === "HTI-PREMIUM-2026") {
+                _isPremium = true;
+                localStorage.setItem('hti_premium', 'true');
+                updatePremiumUI();
+                closePremium();
+                alert(_lang === 'ar' ? "تم تفعيل النسخة المميزة بنجاح!" : "Premium activated successfully!");
+            } else {
+                alert(_lang === 'ar' ? "كود تفعيل غير صحيح." : "Invalid activation code.");
+            }
+        }
+
+        function updatePremiumUI() {
+            const badge = document.getElementById('premium-badge');
+            if (_isPremium) {
+                badge.innerText = translations[_lang].badge_premium;
+                badge.className = "status-badge badge-premium";
+                badge.onclick = null;
+            } else {
+                badge.innerText = translations[_lang].badge_free;
+                badge.className = "status-badge badge-free";
+                badge.onclick = openPremium;
+            }
+        }
+
         function toggleLanguage() {
             _lang = _lang === 'en' ? 'ar' : 'en';
             const t = translations[_lang];
@@ -1537,7 +1695,7 @@
             document.body.setAttribute('lang', _lang);
             
             // Update UI Elements
-            document.querySelector('#tool-status span').innerText = t.ready;
+            document.querySelector('#tool-status #status-text').innerText = t.ready;
             document.getElementById('lbl-subject').innerText = t.subject;
             document.getElementById('lbl-name').innerText = t.name;
             document.getElementById('lbl-id').innerText = t.id;
@@ -1551,6 +1709,18 @@
             document.getElementById('btn-load-project').innerText = t.btn_load;
             document.querySelector('#lbl-project + button + button + input + div').innerText = t.project_hint;
             
+            // Update Premium Modal
+            document.getElementById('prem-title').innerText = t.prem_title;
+            document.getElementById('prem-subtitle').innerText = t.prem_sub;
+            document.getElementById('feat-1').innerText = t.feat_1;
+            document.getElementById('feat-2').innerText = t.feat_2;
+            document.getElementById('feat-3').innerText = t.feat_3;
+            document.getElementById('feat-4').innerText = t.feat_4;
+            document.getElementById('prem-instr').innerHTML = t.prem_instr + ' <br><strong style="font-size: 18px; color: var(--hti-gold);">010XXXXXXXX</strong>';
+            document.getElementById('prem-cash-instr').innerText = t.prem_cash_instr;
+            document.getElementById('prem-note').innerText = t.prem_note;
+            document.getElementById('btn-activate').innerText = t.btn_activate;
+
             document.getElementById('btn-attach-url').innerText = t.insert_btn;
             document.getElementById('btn-insert-page').innerText = t.insert_btn;
             document.getElementById('btn-enter').innerText = t.enter_btn;
@@ -1602,6 +1772,8 @@
             if (aiMsgs.children.length === 1) {
                 aiMsgs.children[0].innerText = t.ai_welcome;
             }
+
+            updatePremiumUI();
 
             // Update Placeholders
             document.getElementById('in-subject').placeholder = t.ph_subject;
@@ -1869,13 +2041,13 @@
         // Logic: Dr. Walaa might want a paper copy. This triggers browser print
         // but uses the @media print CSS to clean the view.
         function invokeTheInk() {
-            const currentStatus = document.getElementById('tool-status');
-            currentStatus.innerHTML = "HTI Builder v1.0 | <span style='color:#fbbf24'>Printing...</span>";
+            const currentStatus = document.getElementById('status-text');
+            currentStatus.innerHTML = "<span style='color:#fbbf24'>Printing...</span>";
             
             window.print();
             
             setTimeout(() => {
-                currentStatus.innerHTML = "HTI Builder v1.0 | <span style='color:var(--hti-gold)'>Ready</span>";
+                currentStatus.innerHTML = "<span style='color:var(--hti-gold)'>Ready</span>";
             }, 1000);
         }
 
@@ -2026,12 +2198,17 @@
 
         // High Quality PDF Export
         async function generateTheMagicPDF() {
+            if (!_isPremium) {
+                alert(translations[_lang].msg_premium_req);
+                openPremium();
+                return;
+            }
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
             const pages = document.querySelectorAll('.pdf-page');
-            const currentStatus = document.getElementById('tool-status');
+            const currentStatus = document.getElementById('status-text');
             
-            currentStatus.innerHTML = "HTI Builder v1.0 | <span style='color:#fbbf24'>Rendering PDF...</span>";
+            currentStatus.innerHTML = "<span style='color:#fbbf24'>Rendering PDF...</span>";
 
             for (let i = 0; i < pages.length; i++) {
                 // Wait for any images to potentially settle
