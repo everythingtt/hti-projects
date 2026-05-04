@@ -950,8 +950,7 @@
                 <li id="feat-4">Academic Rule Validation</li>
             </ul>
 
-            <div style="background: rgba(197, 160, 89, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; font-size: 13px;">
-                <p id="prem-instr">Transfer <strong>75 EGP</strong> credit to: <br><strong style="font-size: 18px; color: var(--hti-gold);">010XXXXXXXX</strong></p>
+                <p id="prem-instr">Transfer <strong>75 EGP</strong> credit to: <br><strong style="font-size: 18px; color: var(--hti-gold);">01061454712</strong></p>
                 <div style="margin: 10px 0; border-top: 1px solid rgba(197, 160, 89, 0.2); padding-top: 10px;">
                     <p id="prem-cash-instr">Or pay <strong>50 EGP Cash</strong> in-person to:</p>
                     <strong style="font-size: 16px; color: var(--hti-gold);">Youssef Ayman</strong>
@@ -979,7 +978,29 @@
         let _isTutorialActive = false;
         let _aiApiKey = null;
         let _isAIStopping = false;
-        let _isPremium = localStorage.getItem('hti_premium') === 'true';
+        
+        // Premium & Trial Logic
+        const _trialLimits = { exports: 2, tokens: 3 };
+        let _isPremium = false;
+        let _trialStats = { exports: 0, tokens: 0 };
+        
+        function initPremium() {
+            const premData = JSON.parse(localStorage.getItem('hti_premium_data') || '{}');
+            const now = Date.now();
+            
+            // Check if key is still valid (30 days)
+            if (premData.key && premData.expiry > now) {
+                _isPremium = true;
+            } else {
+                _isPremium = false;
+                if (premData.key) localStorage.removeItem('hti_premium_data'); // Clear expired
+            }
+
+            // Load Trial Stats
+            _trialStats = JSON.parse(localStorage.getItem('hti_trial_stats') || JSON.stringify({ exports: 0, tokens: 0 }));
+        }
+        
+        initPremium();
         const _aiHistory = [];
 
         const translations = {
@@ -1209,11 +1230,18 @@
         }
 
         async function sendAIMessage() {
-            if (!_isPremium && document.querySelectorAll('.pdf-page').length > 5) {
-                alert(translations[_lang].msg_premium_req);
-                openPremium();
-                return;
+            if (!_isPremium) {
+                if (_trialStats.tokens >= _trialLimits.tokens) {
+                    alert(translations[_lang].msg_premium_req);
+                    openPremium();
+                    return;
+                }
+                // Track trial usage
+                _trialStats.tokens++;
+                localStorage.setItem('hti_trial_stats', JSON.stringify(_trialStats));
+                updatePremiumUI();
             }
+            
             const input = document.getElementById('ai-user-input');
             const text = input.value.trim();
             if (!text) return;
@@ -1660,15 +1688,18 @@
             document.getElementById('premium-overlay').style.display = 'none';
         }
 
-        function validateActivation() {
+        async function validateActivation() {
             const code = document.getElementById('activation-code').value.trim();
-            // Secure hash-based check would be better, but using simple code for now
-            if (code === "HTI-PREMIUM-2026") {
+            // Expected format: HTI-XXXX-XXXX-XXXX where XXXX is alphanumeric
+            // Simple validation for 30-day keys
+            if (code.startsWith("HTI-PREM-")) {
                 _isPremium = true;
-                localStorage.setItem('hti_premium', 'true');
+                const expiry = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 Days
+                const premData = { key: code, expiry: expiry };
+                localStorage.setItem('hti_premium_data', JSON.stringify(premData));
                 updatePremiumUI();
                 closePremium();
-                alert(_lang === 'ar' ? "تم تفعيل النسخة المميزة بنجاح!" : "Premium activated successfully!");
+                alert(_lang === 'ar' ? "تم تفعيل النسخة المميزة لمدة 30 يوم!" : "Premium activated for 30 days!");
             } else {
                 alert(_lang === 'ar' ? "كود تفعيل غير صحيح." : "Invalid activation code.");
             }
@@ -1681,8 +1712,17 @@
                 badge.className = "status-badge badge-premium";
                 badge.onclick = null;
             } else {
-                badge.innerText = translations[_lang].badge_free;
-                badge.className = "status-badge badge-free";
+                const remExports = _trialLimits.exports - _trialStats.exports;
+                const remTokens = _trialLimits.tokens - _trialStats.tokens;
+                
+                if (remExports > 0 || remTokens > 0) {
+                    badge.innerText = translations[_lang].badge_trial;
+                    badge.className = "status-badge badge-free"; // Use free color but trial text
+                    badge.title = translations[_lang].msg_trial_rem + `Exp:${remExports}, AI:${remTokens}`;
+                } else {
+                    badge.innerText = translations[_lang].badge_free;
+                    badge.className = "status-badge badge-free";
+                }
                 badge.onclick = openPremium;
             }
         }
@@ -2199,10 +2239,17 @@
         // High Quality PDF Export
         async function generateTheMagicPDF() {
             if (!_isPremium) {
-                alert(translations[_lang].msg_premium_req);
-                openPremium();
-                return;
+                if (_trialStats.exports >= _trialLimits.exports) {
+                    alert(translations[_lang].msg_premium_req);
+                    openPremium();
+                    return;
+                }
+                // Track trial usage
+                _trialStats.exports++;
+                localStorage.setItem('hti_trial_stats', JSON.stringify(_trialStats));
+                updatePremiumUI();
             }
+            
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
             const pages = document.querySelectorAll('.pdf-page');
